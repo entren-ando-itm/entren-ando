@@ -1,0 +1,5 @@
+
+# Llaves y configuración local: nunca se suben
+.env
+.env.*
+!.env.example
