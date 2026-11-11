@@ -15,7 +15,7 @@ materia Ingeniería de Software del Instituto Tecnológico de Morelia (Tecnológ
 México), con domicilio en Av. Tecnológico 1500, Col. Lomas de Santiaguito, C.P. 58120, Morelia,
 Michoacán.
 
-Correo de contacto para todo lo relacionado con tus datos: **[correo del equipo]**.
+Correo de contacto para todo lo relacionado con tus datos: **l24120371@morelia.tecnm.mx**.
 
 ## 2. Qué datos usamos
 
@@ -72,7 +72,7 @@ y **Oponerte** a su uso. También puedes **revocar tu consentimiento** en cualqu
 * **Desde la app:** puedes ver y corregir tus datos en tu Perfil, y borrar todo con la opción
   **Perfil → Ajustes → Eliminar mi cuenta y mis datos**, que borra tu cuenta, tu respaldo en la nube
   y la base de datos de tu celular.
-* **Por correo:** escribe a **[correo del equipo]** con tu nombre, el correo de tu cuenta y qué
+* **Por correo:** escribe a **l24120371@morelia.tecnm.mx** con tu nombre, el correo de tu cuenta y qué
   derecho quieres ejercer. Te responderemos en un máximo de **20 días** y, si procede, lo
   aplicaremos en los **15 días** siguientes. Es gratuito.
 
