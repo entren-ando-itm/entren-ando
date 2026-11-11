@@ -1,6 +1,7 @@
 # Entren-Ando: instrucciones para la IA
 
 Lee este archivo completo antes de proponer o escribir código. CLAUDE.md tiene el mismo texto.
+Después lee `docs/BITACORA.md`: dice qué ya está hecho, qué se decidió y qué trampas evitar.
 
 El proyecto de Flutter está en la carpeta `entren_ando/`: las rutas `lib/...` y `test/...` de este
 archivo son dentro de esa carpeta y los comandos (`flutter run`, `flutter test`...) se corren ahí.
@@ -24,7 +25,9 @@ y manda sobre cualquier otra idea.
 
 Antes:
 
-* Dale a la IA el archivo AGENTS.md y la descripción técnica de tu historia.
+* Dale a la IA el archivo AGENTS.md, `docs/BITACORA.md` y la descripción técnica de tu historia.
+* La IA revisa en la bitácora las "Decisiones" (no propone lo contrario sin hablarlo en el daily)
+  y los "Contratos entre módulos" (usa lo que ya existe en vez de programarlo otra vez).
 * Pídele primero un plan y revisa qué archivos va a tocar. Si toca algo fuera de
   lib/features/tu_modulo, detente y coméntalo en el daily.
 
@@ -44,6 +47,12 @@ Después:
 * Corre la app, prueba en modo avión y revisa con git diff qué cambió antes del commit.
 * Si no entiendes un bloque de código, pide a la IA que te lo explique. En la revisión te
   pueden preguntar.
+* **Actualiza la bitácora en el mismo PR (obligatorio):** agrega tu entrada arriba de tu sección
+  en "Historial por módulo" de `docs/BITACORA.md` (fecha, historia, quién, PR, qué cambió y qué
+  debe saber el siguiente). Si tomaste una decisión que afecta a otros, encontraste una trampa o
+  tu módulo ahora ofrece algo a los demás, agrégalo también en esas secciones. Solo editas tu
+  sección; "Estado general" lo actualiza quien hace el merge. Un PR sin entrada en la bitácora
+  no se aprueba.
 
 ## 7. Contrato técnico común
 
