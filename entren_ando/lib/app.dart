@@ -10,6 +10,9 @@ import 'features/calendario/pantalla_calendario.dart';
 import 'features/entrenamiento/pantalla_hoy.dart';
 import 'features/nutricion/pantalla_comidas.dart';
 import 'features/perfil/catalogo/pantalla_catalogo.dart';
+import 'features/perfil/pantalla_editar_perfil.dart';
+import 'features/perfil/pantalla_equipo.dart';
+import 'features/perfil/pantalla_mediciones.dart';
 import 'features/perfil/pantalla_perfil.dart';
 
 /// Navegador de toda la app.
@@ -51,6 +54,22 @@ final GoRouter rutas = GoRouter(
                 path: 'catalogo',
                 parentNavigatorKey: navegadorRaiz,
                 builder: (context, state) => const PantallaCatalogo(),
+              ),
+              // ENT-18: perfil, mediciones y equipo (sin la barra de abajo).
+              GoRoute(
+                path: 'editar',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) => const PantallaEditarPerfil(),
+              ),
+              GoRoute(
+                path: 'mediciones',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) => const PantallaMediciones(),
+              ),
+              GoRoute(
+                path: 'equipo',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) => const PantallaEquipo(),
               ),
               // Solo en modo de prueba: galería con todos los componentes.
               if (kDebugMode)
