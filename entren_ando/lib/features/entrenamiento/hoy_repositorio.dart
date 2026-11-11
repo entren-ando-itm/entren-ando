@@ -26,6 +26,7 @@ class EjercicioDelDia {
     required this.repeticiones,
     required this.completado,
     this.pesoKg,
+    this.descansoSeg = 90,
     this.trabajoSeg,
   });
 
@@ -38,6 +39,9 @@ class EjercicioDelDia {
   final int series;
   final int repeticiones;
   final double? pesoKg;
+
+  /// Segundos de descanso entre series (para el temporizador, ENT-19).
+  final int descansoSeg;
 
   /// Segundos de trabajo para ejercicios por tiempo (por ejemplo, la plancha).
   final int? trabajoSeg;
@@ -152,7 +156,7 @@ final diaDeHoyProvider = FutureProvider<DiaDeHoy?>((ref) async {
     final filas = await bd.rawQuery('''
       SELECT ep.id_programado, ep.orden,
              COALESCE(ue.nombre_alias, e.nombre_oficial) AS nombre,
-             ep.series_objetivo, ep.reps_objetivo, ep.peso_objetivo_kg, ep.trabajo_seg,
+             ep.series_objetivo, ep.reps_objetivo, ep.peso_objetivo_kg, ep.descanso_seg, ep.trabajo_seg,
              EXISTS (
                SELECT 1
                FROM sesion_entrenamiento s
@@ -178,6 +182,7 @@ final diaDeHoyProvider = FutureProvider<DiaDeHoy?>((ref) async {
           series: f['series_objetivo'] as int,
           repeticiones: f['reps_objetivo'] as int,
           pesoKg: (f['peso_objetivo_kg'] as num?)?.toDouble(),
+          descansoSeg: f['descanso_seg'] as int,
           trabajoSeg: f['trabajo_seg'] as int?,
           completado: f['completado'] == 1,
         ),
