@@ -95,7 +95,9 @@ acuerdo del equipo.
 ## Diseño visual (ENT-12)
 
 El diseño aprobado está en el lienzo "Pantallas Entren-Ando" (pídele el enlace a Pablo) y en
-`docs/pantallas/` (un PNG por pantalla, en claro y oscuro). Es minimalista: superficies sólidas,
+`docs/pantallas/` (un PNG por pantalla, en claro y oscuro; `docs/pantallas/LEEME.md` dice qué
+historia y qué componentes usa cada una). **Antes de programar una pantalla, la IA debe ver su PNG y
+reproducirlo con los componentes; si la pantalla no tiene PNG, se toma como modelo la más parecida.** Es minimalista: superficies sólidas,
 sin bordes ni sombras, letra Barlow y modo claro y oscuro. Todo lo visual ya está hecho en
 `lib/core/tema` y `lib/core/componentes`, y se importa con una sola línea:
 
@@ -135,6 +137,8 @@ import 'package:entren_ando/core/diseno.dart';
     `parentNavigatorKey: navegadorRaiz`.
 12. **Si falta un componente,** no lo inventes en tu módulo ni copies uno con otro estilo: pregúntale
     a Pablo y, si se aprueba, se agrega a `lib/core/componentes` para todo el equipo.
+13. **Pantallas nuevas:** una pantalla que no está en `docs/pantallas/` se arma con las mismas piezas y
+    se le avisa a Pablo antes del Pull Request, para agregarla al lienzo y a esa carpeta.
 
 ### Componentes
 
