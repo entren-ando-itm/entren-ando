@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/componentes/galeria_componentes.dart';
+import 'core/conectividad/aviso_sin_red.dart';
 import 'core/diseno.dart';
 import 'features/calendario/pantalla_calendario.dart';
 import 'features/entrenamiento/pantalla_hoy.dart';
@@ -73,9 +74,11 @@ class EntrenAndoApp extends ConsumerWidget {
       themeMode: ref.watch(modoTemaProvider),
       routerConfig: rutas,
       // Íconos de la barra de estado oscuros en modo claro y claros en oscuro.
+      // AvisoSinRed muestra la banda "Sin conexión" arriba de todas las
+      // pantallas (ENT-14).
       builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
         value: TemaEntrenAndo.barraDelSistema(Theme.of(context).brightness),
-        child: child ?? const SizedBox.shrink(),
+        child: AvisoSinRed(child: child ?? const SizedBox.shrink()),
       ),
     );
   }
