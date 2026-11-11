@@ -9,6 +9,7 @@ import 'core/diseno.dart';
 import 'features/calendario/pantalla_calendario.dart';
 import 'features/entrenamiento/pantalla_hoy.dart';
 import 'features/nutricion/pantalla_comidas.dart';
+import 'features/perfil/catalogo/pantalla_catalogo.dart';
 import 'features/perfil/pantalla_perfil.dart';
 
 /// Navegador de toda la app.
@@ -45,6 +46,12 @@ final GoRouter rutas = GoRouter(
             path: '/perfil',
             builder: (context, state) => const PantallaPerfil(),
             routes: [
+              // ENT-17: catálogo de ejercicios con alias (sin la barra de abajo).
+              GoRoute(
+                path: 'catalogo',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) => const PantallaCatalogo(),
+              ),
               // Solo en modo de prueba: galería con todos los componentes.
               if (kDebugMode)
                 GoRoute(

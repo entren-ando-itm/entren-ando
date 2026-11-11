@@ -113,6 +113,18 @@ class PantallaPerfil extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: Medidas.espacio5),
+              const EtiquetaSeccion('Entrenamiento'),
+              const SizedBox(height: 10),
+              GrupoFilas(
+                filas: [
+                  FilaAjuste(
+                    titulo: 'Catálogo de ejercicios',
+                    icono: Icons.menu_book_outlined,
+                    alTocar: () => context.push('/perfil/catalogo'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Medidas.espacio5),
               const EtiquetaSeccion('Ajustes'),
               const SizedBox(height: 10),
               GrupoFilas(
