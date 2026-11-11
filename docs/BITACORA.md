@@ -114,6 +114,8 @@ Problemas que ya le pasaron a alguien, con su solución.
 
 * **Emulador en negro o muy lento:** Pixel 4 con API 34, Graphics en **Software**, RAM 2048 MB y VM
   heap 512 MB.
+* **Flutter no ve el emulador ("offline" o "No supported devices"):** cierra `qemu-system-x86_64`
+  en el Administrador de tareas y enciende el Pixel 4 con **Cold Boot Now**.
 * **Error de NDK al compilar:** instalar NDK (Side by side) **28.2.13676358** exacta en el SDK
   Manager.
 * **Error de compileSdk:** el proyecto usa `compileSdk = 37` y
@@ -146,6 +148,8 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `AvisoSinRed` | ya puesto en `lib/app.dart` | No lo agregues en tus pantallas |
 | `CatalogoRepositorio.nombreVisible` y `joinAlias` | `lib/features/perfil/catalogo/catalogo_repositorio.dart` | Nombre del ejercicio con el alias del usuario (lo necesitan ENT-39 y ENT-49) |
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
+| `diaDeHoyProvider` (`DiaDeHoy`, `EjercicioDelDia`) | `lib/features/entrenamiento/hoy_repositorio.dart` | Rutina de hoy con alias, descanso y avance; también los días que vienen |
+| `TemporizadorFlotante`, `temporizadorProvider` | `lib/features/entrenamiento/temporizador/` | Descanso o trabajo con hora de fin (lo usa ENT-49) |
 | Rutas `/perfil/catalogo`, `/perfil/editar`, `/perfil/mediciones`, `/perfil/equipo` | `lib/app.dart` | Abrir esas pantallas con `context.push(...)` |
 
 ---
@@ -201,4 +205,18 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Paola · entrenamiento del día y calendario (`lib/features/entrenamiento`, `lib/features/calendario`)
 
-* *(Aún sin entradas. ENT-20 está en curso.)*
+* **2026-11-11 · ENT-19 (ENT-37, ENT-38) · Paola · PR #(pendiente)**
+  Qué: temporizador de descanso y trabajo (`temporizadorProvider`, `TemporizadorFlotante`) con −15 s,
+  +15 s, Reiniciar y Saltar, y notificación local con sonido y vibración a la hora de fin.
+  Por qué / decisión: guarda la hora de fin en vez de contar segundos (no se desfasa en segundo
+  plano). Se agregaron permisos y receptores en AndroidManifest y se declaró `timezone` en
+  pubspec (ya venía con flutter_local_notifications, misma versión).
+  Para el siguiente: sin el permiso de alarmas exactas (Android 14+) el aviso puede llegar unos
+  segundos tarde. El botón "Probar temporizador" de Hoy (solo debug) se quita en ENT-49.
+
+* **2026-11-11 · ENT-20 (ENT-39, ENT-40) · Paola · PR #8**
+  Qué: pestaña Hoy como en `02_hoy.png`: encabezado, ejercicios con estado (hecho, "Sigue",
+  pendiente), botón "Seguir entrenando" y franjas de los días que vienen.
+  Por qué / decisión: si hoy no está en la rutina se muestra como descanso. El estado de cada
+  ejercicio se lee de `registro_ejercicio.completado` de la sesión de hoy.
+  Para el siguiente: el botón "Seguir entrenando" se conecta en ENT-49.
