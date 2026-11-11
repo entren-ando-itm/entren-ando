@@ -17,20 +17,6 @@ import 'perfil_repositorio.dart';
 class PantallaPerfil extends ConsumerWidget {
   const PantallaPerfil({super.key});
 
-  static const Map<String, String> _objetivos = {
-    'fuerza': 'Fuerza',
-    'hipertrofia': 'Hipertrofia',
-    'perdida_grasa': 'Pérdida de grasa',
-    'resistencia': 'Resistencia',
-    'salud': 'Salud',
-  };
-
-  static const Map<String, String> _niveles = {
-    'principiante': 'Principiante',
-    'intermedio': 'Intermedio',
-    'avanzado': 'Avanzado',
-  };
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resumen = ref.watch(resumenPerfilProvider);
@@ -53,8 +39,8 @@ class PantallaPerfil extends ConsumerWidget {
           final textos = Theme.of(context).textTheme;
           final diasPorSemana = perfil.diasPorSemana;
           final detalles = [
-            _objetivos[perfil.objetivo],
-            _niveles[perfil.nivel],
+            objetivosPerfil[perfil.objetivo],
+            nivelesPerfil[perfil.nivel],
             if (diasPorSemana != null) '$diasPorSemana días por semana',
           ].whereType<String>().join(' · ');
           final fechaMedicion = DateTime.tryParse(perfil.fechaMedicion ?? '');
@@ -117,6 +103,21 @@ class PantallaPerfil extends ConsumerWidget {
               const SizedBox(height: 10),
               GrupoFilas(
                 filas: [
+                  FilaAjuste(
+                    titulo: 'Objetivo y nivel',
+                    icono: Icons.flag_outlined,
+                    alTocar: () => context.push('/perfil/editar'),
+                  ),
+                  FilaAjuste(
+                    titulo: 'Mediciones',
+                    icono: Icons.monitor_weight_outlined,
+                    alTocar: () => context.push('/perfil/mediciones'),
+                  ),
+                  FilaAjuste(
+                    titulo: 'Mi equipo',
+                    icono: Icons.fitness_center_rounded,
+                    alTocar: () => context.push('/perfil/equipo'),
+                  ),
                   FilaAjuste(
                     titulo: 'Catálogo de ejercicios',
                     icono: Icons.menu_book_outlined,
