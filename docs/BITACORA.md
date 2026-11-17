@@ -172,6 +172,14 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Ángel · nube, red, sincronización y comidas (`supabase/`, `lib/core/conectividad`, `lib/core/sync`, `lib/features/nube`, `lib/features/nutricion`)
 
+* **2026-11-17 · ENT-45 · Ángel · PR #9**
+  Qué: pestaña Comidas con total del día (calorías y macros con `SUM` por fecha de CDMX),
+  "Registrar a mano" en una hoja y editar o borrar al tocar una comida. Funciona en modo avión.
+  Por qué / decisión: sin meta calórica (no está en la ERS); borrar pide un segundo toque en vez
+  de un diálogo.
+  Para el siguiente: ENT-65 le pone la acción al botón "Escanear con cámara" (ya está con
+  `BotonConRed`); detalles en `lib/features/nutricion/LEEME.md`.
+
 * **2026-11-10 · ENT-14 · Ángel · PR #6**
   Qué: `hayRedProvider` revisa internet real (no solo Wi-Fi) y reintenta a los 10, 20, 40 y 60 s;
   banda "Sin conexión" en toda la app y `BotonConRed`.
