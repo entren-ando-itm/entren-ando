@@ -172,6 +172,10 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Ángel · nube, red, sincronización y comidas (`supabase/`, `lib/core/conectividad`, `lib/core/sync`, `lib/features/nube`, `lib/features/nutricion`)
 
+* **2026-11-17 · ENT-46 · Ángel · PR #12**
+  Qué: `docs/reportes/sprint2.md`, corte al 17 de noviembre (estado de cada historia e impedimentos).
+  Para el siguiente: al cierre del sprint se completan puntos, burndown y retrospectiva.
+
 * **2026-11-10 · ENT-14 · Ángel · PR #6**
   Qué: `hayRedProvider` revisa internet real (no solo Wi-Fi) y reintenta a los 10, 20, 40 y 60 s;
   banda "Sin conexión" en toda la app y `BotonConRed`.
