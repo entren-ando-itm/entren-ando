@@ -97,10 +97,8 @@ Lo que ya se acordó. La IA no debe proponer lo contrario sin hablarlo en el dai
 
 Cosas detectadas que todavía no se arreglan. Quien la resuelva, la tacha (~~así~~) y pone su PR.
 
-* **Zona horaria de Supabase (para ENT-44, Ángel).** Supabase trabaja en UTC: una comida registrada
-  a las 23:30 del día 9 regresa como "10 de noviembre 05:30" y cambiaría de día. Arreglo:
-  `ALTER DATABASE postgres SET timezone TO 'America/Mexico_City';` en `supabase/esquema.sql`, o
-  convertir a hora de CDMX al bajar los datos.
+* ~~**Zona horaria de Supabase (para ENT-44, Ángel).**~~ Resuelto en PR #11: `ALTER DATABASE postgres SET
+  timezone TO 'America/Mexico_City'` en `supabase/esquema.sql` y `supabase/ajustes_ent44.sql`.
 * **`feedback_ia` en Supabase (para ENT-69, Axel / Ángel).** La política de UPDATE deja cambiar el
   texto del mensaje, no solo `leido`. Se cierra permitiendo actualizar solo esa columna.
 * **Ramas viejas en GitHub.** Las ramas de los PR #1 a #6 ya están integradas y se pueden borrar
@@ -118,6 +116,9 @@ Problemas que ya le pasaron a alguien, con su solución.
   Manager.
 * **Error de compileSdk:** el proyecto usa `compileSdk = 37` y
   `android.suppressUnsupportedCompileSdk=37` en `android/gradle.properties`. No los cambies.
+* **La app no sincroniza (sale "Nube apagada"):** falta `entren_ando/.env` o correr con
+  `flutter run --dart-define-from-file=.env`. Copia `.env.example` y llénalo (ver
+  `lib/features/nube/LEEME.md`).
 * **Cambié el esquema y la app truena:** desinstala la app del emulador para que la base se cree de
   nuevo (o sube `BaseDatos.version` con su migración, con acuerdo del equipo).
 * **Los datos demo tienen fechas viejas:** Perfil → "Reiniciar datos de prueba" (solo en debug).
@@ -143,6 +144,8 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `import 'package:entren_ando/core/diseno.dart'` | `lib/core/tema`, `lib/core/componentes` | Tema, medidas y todos los componentes |
 | `hayRedProvider` y `ref.read(hayRedProvider.notifier).revisar()` | `lib/core/conectividad/conectividad.dart` | Saber si hay internet de verdad y reaccionar cuando vuelve la red (ENT-44) |
 | `BotonConRed` | `lib/core/conectividad/boton_con_red.dart` | Botones que necesitan internet |
+| `ClienteSupabase.cliente` | `lib/features/nube/cliente_supabase.dart` | El cliente de Supabase (null si no hay `.env`). ENT-41 inicia sesión con él |
+| `sincronizacionProvider` y `.notifier.sincronizar()` | `lib/core/sync/sincronizacion.dart` | Estado de la sincronización y subir ya (ENT-54) |
 | `AvisoSinRed` | ya puesto en `lib/app.dart` | No lo agregues en tus pantallas |
 | `CatalogoRepositorio.nombreVisible` y `joinAlias` | `lib/features/perfil/catalogo/catalogo_repositorio.dart` | Nombre del ejercicio con el alias del usuario (lo necesitan ENT-39 y ENT-49) |
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
@@ -171,6 +174,15 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Por qué: que cada quien pueda trabajar su módulo sin esperar a los demás.
 
 ### Ángel · nube, red, sincronización y comidas (`supabase/`, `lib/core/conectividad`, `lib/core/sync`, `lib/features/nube`, `lib/features/nutricion`)
+
+* **2026-11-17 · ENT-44 · Ángel · PR #11**
+  Qué: `MotorSync` sube lo pendiente a Supabase (upsert por id, lotes de 100, orden de llaves
+  foráneas) al abrir la app, al volver la red y al iniciar sesión. Cliente de Supabase con `.env` y
+  pantalla de prueba para entrar como demo.
+  Por qué / decisión: el demo de Supabase usa el mismo id que el del celular
+  (`supabase/ajustes_ent44.sql`) para no tocar los datos de prueba.
+  Para el siguiente: corre la app con `--dart-define-from-file=.env`; ENT-41 debe iniciar sesión
+  con `ClienteSupabase.cliente` y ENT-54 lee `sincronizacionProvider`.
 
 * **2026-11-10 · ENT-14 · Ángel · PR #6**
   Qué: `hayRedProvider` revisa internet real (no solo Wi-Fi) y reintenta a los 10, 20, 40 y 60 s;
