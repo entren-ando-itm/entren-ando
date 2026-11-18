@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -5,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/db/fechas.dart';
 import '../../core/diseno.dart';
 import 'hoy_repositorio.dart';
+import 'temporizador/temporizador_flotante.dart';
 
 /// Pestaña Hoy: vista del día tipo horario escolar (ENT-20, ENT-39 y ENT-40).
 ///
@@ -74,7 +76,38 @@ class PantallaHoy extends ConsumerWidget {
           icono: Icons.play_arrow_rounded,
           alPresionar: () => _abrirEjercicio(context, siguiente),
         ),
+      // Solo en debug: probar el temporizador (ENT-19) sin la bitácora.
+      // Se quita cuando ENT-49 ponga el temporizador en la pantalla del ejercicio.
+      if (kDebugMode && siguiente != null) ...[
+        const SizedBox(height: Medidas.espacio2),
+        BotonTexto(
+          texto: 'Probar temporizador',
+          icono: Icons.timer_outlined,
+          anchoCompleto: true,
+          alPresionar: () => _probarTemporizador(context, siguiente),
+        ),
+      ],
     ];
+  }
+
+  /// Hoja de prueba con el temporizador del ejercicio que sigue (solo debug).
+  void _probarTemporizador(BuildContext context, EjercicioDelDia ejercicio) {
+    mostrarHojaInferior<void>(
+      context: context,
+      constructor: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          EncabezadoHoja(titulo: ejercicio.nombre, subtitulo: 'Prueba del temporizador'),
+          const SizedBox(height: Medidas.espacio5),
+          TemporizadorFlotante(
+            nombreEjercicio: ejercicio.nombre,
+            descansoSeg: ejercicio.descansoSeg,
+            trabajoSeg: ejercicio.trabajoSeg,
+          ),
+        ],
+      ),
+    );
   }
 
   /// Abre la pantalla del ejercicio que sigue.
