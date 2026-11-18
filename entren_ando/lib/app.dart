@@ -16,6 +16,9 @@ import 'features/perfil/pantalla_editar_perfil.dart';
 import 'features/perfil/pantalla_equipo.dart';
 import 'features/perfil/pantalla_mediciones.dart';
 import 'features/perfil/pantalla_perfil.dart';
+import 'features/rutinas/pantalla_ciclo.dart';
+import 'features/rutinas/pantalla_ciclos.dart';
+import 'features/rutinas/pantalla_editor_dia.dart';
 
 /// Navegador de toda la app.
 ///
@@ -84,6 +87,29 @@ final GoRouter rutas = GoRouter(
                 path: 'equipo',
                 parentNavigatorKey: navegadorRaiz,
                 builder: (context, state) => const PantallaEquipo(),
+              ),
+              // ENT-47: ciclos de rutina, sus 7 días y el editor de cada día (sin la barra).
+              GoRoute(
+                path: 'ciclos',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) => const PantallaCiclos(),
+                routes: [
+                  GoRoute(
+                    path: ':idCiclo',
+                    parentNavigatorKey: navegadorRaiz,
+                    builder: (context, state) => PantallaCiclo(idCiclo: state.pathParameters['idCiclo']!),
+                    routes: [
+                      GoRoute(
+                        path: 'dia/:idDia',
+                        parentNavigatorKey: navegadorRaiz,
+                        builder: (context, state) => PantallaEditorDia(
+                          idCiclo: state.pathParameters['idCiclo']!,
+                          idDia: state.pathParameters['idDia']!,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               // Solo en modo de prueba: galería con todos los componentes.
               if (kDebugMode)

@@ -104,6 +104,11 @@ class PantallaPerfil extends ConsumerWidget {
               GrupoFilas(
                 filas: [
                   FilaAjuste(
+                    titulo: 'Mis ciclos',
+                    icono: Icons.calendar_view_week_rounded,
+                    alTocar: () => context.push('/perfil/ciclos'),
+                  ),
+                  FilaAjuste(
                     titulo: 'Objetivo y nivel',
                     icono: Icons.flag_outlined,
                     alTocar: () => context.push('/perfil/editar'),

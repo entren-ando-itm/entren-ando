@@ -105,6 +105,10 @@ Cosas detectadas que todavía no se arreglan. Quien la resuelva, la tacha (~~as�
   texto del mensaje, no solo `leido`. Se cierra permitiendo actualizar solo esa columna.
 * **Ramas viejas en GitHub.** Las ramas de los PR #1 a #6 ya están integradas y se pueden borrar
   (GitHub → Branches).
+* **Hoy con varios ciclos activos (para ENT-20, Paola).** `hoy_repositorio.dart` toma el ciclo
+  activo con `LIMIT 1` sin orden; con Premium puede haber varios y ENT-47 pide el de `fecha_inicio`
+  más reciente. Arreglo: usar `RutinasRepositorio.consultaCicloParaHoy` (o agregar
+  `ORDER BY fecha_inicio DESC, creado_en DESC`). Con el plan Gratuito no se nota.
 
 ---
 
@@ -152,6 +156,8 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `TemporizadorFlotante`, `temporizadorProvider` | `lib/features/entrenamiento/temporizador/` | Descanso o trabajo con hora de fin (lo usa ENT-49) |
 | `BitacoraRepositorio`, `ejercicioBitacoraProvider`, `sesionDeHoyProvider` | `lib/features/entrenamiento/bitacora/` | Series de hoy de un ejercicio (guardar, quitar y precarga), terminar ejercicio, estado y comentario de la sesión; ruta `/hoy/ejercicio/:idProgramado` |
 | Rutas `/perfil/catalogo`, `/perfil/editar`, `/perfil/mediciones`, `/perfil/equipo` | `lib/app.dart` | Abrir esas pantallas con `context.push(...)` |
+| `rutinasRepositorioProvider`, `RutinasRepositorio.consultaCicloParaHoy` y `consultaEjerciciosDelDia` | `lib/features/rutinas/rutinas_repositorio.dart` | Ciclos, días y ejercicios programados; el ciclo que usa Hoy (lo necesita ENT-58 para guardar la rutina de la IA) |
+| Rutas `/perfil/ciclos`, `/perfil/ciclos/:idCiclo` y `/perfil/ciclos/:idCiclo/dia/:idDia` | `lib/app.dart` | Abrir Mis ciclos, un ciclo o el editor de un día |
 
 ---
 
@@ -205,6 +211,16 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Pendiente: zona horaria de CDMX y UPDATE de `feedback_ia` (ver "Pendientes técnicos").
 
 ### Axel · perfil, catálogo, rutinas e IA (`lib/features/perfil`, `lib/features/rutinas`, `lib/features/ia`)
+
+* **2026-11-17 · ENT-47 (ENT-83, ENT-84, ENT-85) · Axel · PR #15**
+  Qué: Perfil → Mis ciclos: crear ciclos con nombre y fechas, sus 7 días (rutina o descanso) y el
+  editor de cada día (agregar, quitar y reordenar ejercicios del catálogo; series, reps, peso,
+  descanso y trabajo). Archivar y reactivar; un ciclo archivado se ve en solo lectura.
+  Por qué / decisión: el límite sale de `plan.max_ciclos_activos`; al llegar a él se ofrece
+  archivar el ciclo actual o ver Premium (por ahora avisa "muy pronto" hasta ENT-52). Las fechas
+  se escriben dd/mm/aaaa porque la app no tiene el calendario de Android en español.
+  Para el siguiente: Hoy debe tomar el ciclo de `RutinasRepositorio.consultaCicloParaHoy` (ver
+  "Pendientes técnicos"). Quitar un ejercicio también marca sus alternativas (ENT-48).
 
 * **2026-11-10 · ENT-18 · Axel · PR #4 (integrado con #3)**
   Qué: editar perfil (objetivo, nivel, días, lesiones), mediciones biométricas y equipo que tiene
