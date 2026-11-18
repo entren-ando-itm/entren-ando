@@ -176,6 +176,10 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Ángel · nube, red, sincronización y comidas (`supabase/`, `lib/core/conectividad`, `lib/core/sync`, `lib/features/nube`, `lib/features/nutricion`)
 
+* **2026-11-17 · ENT-46 · Ángel · PR #12**
+  Qué: `docs/reportes/sprint2.md`, corte al 17 de noviembre (estado de cada historia e impedimentos).
+  Para el siguiente: al cierre del sprint se completan puntos, burndown y retrospectiva.
+
 * **2026-11-17 · ENT-45 · Ángel · PR #10**
   Qué: pestaña Comidas con total del día (calorías y macros con `SUM` por fecha de CDMX),
   "Registrar a mano" en una hoja y editar o borrar al tocar una comida. Funciona en modo avión.
