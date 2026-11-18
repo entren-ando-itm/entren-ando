@@ -16,11 +16,24 @@
 --    Se cambia el id en Authentication (auth.users y su identidad) en una sola
 --    sentencia; la contraseña del demo no cambia. Si ya hay una sesión del demo
 --    abierta en un celular, hay que cerrar sesión y volver a entrar.
+--
+-- 3. Las solicitudes de IA del demo con los mismos ids que en el celular. El
+--    ciclo demo y la comida escaneada apuntan a ellas; la app no puede crear
+--    solicitud_ia (RLS: las crea el servidor), así que sin esto se rechaza el
+--    ciclo y todo lo que cuelga de él (revisión de Pablo en el PR #11).
 -- =====================================================================
 
 ALTER DATABASE postgres SET timezone TO 'America/Mexico_City';
 
--- Las sesiones abiertas del demo se cierran (guardan el id viejo).
+-- Las sesiones abiertas del demo se cierran (guardan el id viejo) y se borran
+-- sus códigos de confirmación pendientes, que también apuntan al id viejo.
+DELETE FROM auth.one_time_tokens
+WHERE user_id IN (
+  SELECT id FROM auth.users
+  WHERE email = 'demo@entrenando.test'
+    AND id <> '00000000-0000-0000-0000-000000000001'
+);
+
 DELETE FROM auth.sessions
 WHERE user_id IN (
   SELECT id FROM auth.users
@@ -48,9 +61,25 @@ UPDATE auth.users
 SET id = '00000000-0000-0000-0000-000000000001'
 WHERE id IN (SELECT id FROM viejo);
 
--- Comprobación: debe dar una fila con el id 00000000-...-0001 y la zona
--- America/Mexico_City (la zona se ve en conexiones nuevas; si sale UTC,
+-- 3. Solicitudes de IA del demo. solicitud_ia apunta a usuario, así que primero
+--    se asegura la fila del usuario demo (la sincronización la completa con los
+--    datos del celular).
+INSERT INTO usuario (id_usuario, correo, nombre)
+VALUES ('00000000-0000-0000-0000-000000000001', 'demo@entrenando.test', 'Usuario Demo')
+ON CONFLICT (id_usuario) DO NOTHING;
+
+INSERT INTO solicitud_ia (id_solicitud, id_usuario, tipo, fecha_hora, estado)
+VALUES
+  ('00000003-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000001', 'rutina',   now() - interval '60 days',  'completada'),
+  ('00000003-0000-4000-8000-000000000002', '00000000-0000-0000-0000-000000000001', 'feedback', date_trunc('month', now()), 'completada'),
+  ('00000003-0000-4000-8000-000000000003', '00000000-0000-0000-0000-000000000001', 'escaneo',  now(),                       'completada')
+ON CONFLICT (id_solicitud) DO NOTHING;
+
+-- Comprobación: debe dar una fila con el id 00000000-...-0001, 3 solicitudes y
+-- la zona America/Mexico_City (la zona se ve en conexiones nuevas; si sale UTC,
 -- vuelve a correr solo este SELECT en otra pestaña).
-SELECT id, email, current_setting('TimeZone') AS zona
-FROM auth.users
-WHERE email = 'demo@entrenando.test';
+SELECT u.id, u.email,
+       (SELECT count(*) FROM solicitud_ia s WHERE s.id_usuario = u.id) AS solicitudes,
+       current_setting('TimeZone') AS zona
+FROM auth.users u
+WHERE u.email = 'demo@entrenando.test';

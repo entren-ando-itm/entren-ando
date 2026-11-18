@@ -19,6 +19,10 @@ Reglas:
   solo se sube `leido`.
 * Usa la sesión del usuario en Supabase: la seguridad la da RLS. Nunca la service_role.
 * Si la sesión de Supabase no es la del usuario de la app (`usuarioActualIdProvider`), no sube nada.
+* Solo sube las filas del usuario: las tablas sin `id_usuario` (días, ejercicios programados,
+  alternativas, registros, series) se filtran por su padre (`TablaSync.dueno`).
+* Las solicitudes de IA las crea la nube y el celular guarda el mismo id (decisión 13 de la
+  bitácora). Si una fila apunta a una solicitud que no existe en Supabase, se rechaza.
 * Los datos demo vienen con `pendiente_sync = 0`: para verlos en la nube, Perfil → Modo de prueba →
   Nube y sincronización → "Subir también los datos de prueba".
 
