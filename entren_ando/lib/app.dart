@@ -9,6 +9,7 @@ import 'core/conectividad/aviso_sin_red.dart';
 import 'core/diseno.dart';
 import 'core/sync/sincronizacion.dart';
 import 'features/calendario/pantalla_calendario.dart';
+import 'features/entrenamiento/bitacora/pantalla_ejercicio.dart';
 import 'features/entrenamiento/pantalla_hoy.dart';
 import 'features/nube/pantalla_nube_prueba.dart';
 import 'features/nutricion/pantalla_comidas.dart';
@@ -17,6 +18,9 @@ import 'features/perfil/pantalla_editar_perfil.dart';
 import 'features/perfil/pantalla_equipo.dart';
 import 'features/perfil/pantalla_mediciones.dart';
 import 'features/perfil/pantalla_perfil.dart';
+import 'features/rutinas/pantalla_ciclo.dart';
+import 'features/rutinas/pantalla_ciclos.dart';
+import 'features/rutinas/pantalla_editor_dia.dart';
 
 /// Navegador de toda la app.
 ///
@@ -39,7 +43,19 @@ final GoRouter rutas = GoRouter(
       builder: (context, state, navegacion) => EsqueletoPestanas(navegacion: navegacion),
       branches: [
         StatefulShellBranch(routes: [
-          GoRoute(path: '/hoy', builder: (context, state) => const PantallaHoy()),
+          GoRoute(
+            path: '/hoy',
+            builder: (context, state) => const PantallaHoy(),
+            routes: [
+              // ENT-49: bitácora del ejercicio (sin la barra de abajo).
+              GoRoute(
+                path: 'ejercicio/:idProgramado',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) =>
+                    PantallaEjercicio(idProgramado: state.pathParameters['idProgramado']!),
+              ),
+            ],
+          ),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(path: '/calendario', builder: (context, state) => const PantallaCalendario()),
@@ -73,6 +89,29 @@ final GoRouter rutas = GoRouter(
                 path: 'equipo',
                 parentNavigatorKey: navegadorRaiz,
                 builder: (context, state) => const PantallaEquipo(),
+              ),
+              // ENT-47: ciclos de rutina, sus 7 días y el editor de cada día (sin la barra).
+              GoRoute(
+                path: 'ciclos',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) => const PantallaCiclos(),
+                routes: [
+                  GoRoute(
+                    path: ':idCiclo',
+                    parentNavigatorKey: navegadorRaiz,
+                    builder: (context, state) => PantallaCiclo(idCiclo: state.pathParameters['idCiclo']!),
+                    routes: [
+                      GoRoute(
+                        path: 'dia/:idDia',
+                        parentNavigatorKey: navegadorRaiz,
+                        builder: (context, state) => PantallaEditorDia(
+                          idCiclo: state.pathParameters['idCiclo']!,
+                          idDia: state.pathParameters['idDia']!,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               // Solo en modo de prueba: galería con todos los componentes.
               if (kDebugMode)

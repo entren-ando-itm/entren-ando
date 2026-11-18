@@ -43,6 +43,9 @@ dependencies:
   connectivity_plus: ^7.3.2
   supabase_flutter: ^2.18.3
   flutter_local_notifications: ^23.0.0
+  # Ya venía con flutter_local_notifications (misma versión); se declara porque
+  # el temporizador (ENT-38) usa tz.TZDateTime para programar el aviso.
+  timezone: ^0.11.2
 
 dev_dependencies:
   flutter_test:

@@ -90,6 +90,11 @@ Lo que ya se acordó. La IA no debe proponer lo contrario sin hablarlo en el dai
     miembros de la organización `entren-ando-itm` y admin del repositorio.
 12. **Aviso de privacidad:** versión 1.0 del 10 de noviembre de 2026; correo de contacto
     l24120371@morelia.tecnm.mx. ENT-42 guarda la versión aceptada (ENT-76).
+13. **Ids de las solicitudes de IA:** las solicitudes de IA las crea la nube y el celular guarda el
+    mismo id (`id_solicitud`), igual que con el usuario. Así el ciclo generado con IA, la comida
+    escaneada y el feedback apuntan a una solicitud que sí existe en Supabase al sincronizar
+    (ENT-44; lo usan ENT-101 de Axel y ENT-109). Las del usuario demo las crea
+    `supabase/ajustes_ent44.sql`.
 
 ---
 
@@ -103,6 +108,10 @@ Cosas detectadas que todavía no se arreglan. Quien la resuelva, la tacha (~~as�
   texto del mensaje, no solo `leido`. Se cierra permitiendo actualizar solo esa columna.
 * **Ramas viejas en GitHub.** Las ramas de los PR #1 a #6 ya están integradas y se pueden borrar
   (GitHub → Branches).
+* **Hoy con varios ciclos activos (para ENT-20, Paola).** `hoy_repositorio.dart` toma el ciclo
+  activo con `LIMIT 1` sin orden; con Premium puede haber varios y ENT-47 pide el de `fecha_inicio`
+  más reciente. Arreglo: usar `RutinasRepositorio.consultaCicloParaHoy` (o agregar
+  `ORDER BY fecha_inicio DESC, creado_en DESC`). Con el plan Gratuito no se nota.
 
 ---
 
@@ -112,6 +121,8 @@ Problemas que ya le pasaron a alguien, con su solución.
 
 * **Emulador en negro o muy lento:** Pixel 4 con API 34, Graphics en **Software**, RAM 2048 MB y VM
   heap 512 MB.
+* **Flutter no ve el emulador ("offline" o "No supported devices"):** cierra `qemu-system-x86_64`
+  en el Administrador de tareas y enciende el Pixel 4 con **Cold Boot Now**.
 * **Error de NDK al compilar:** instalar NDK (Side by side) **28.2.13676358** exacta en el SDK
   Manager.
 * **Error de compileSdk:** el proyecto usa `compileSdk = 37` y
@@ -149,7 +160,12 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `AvisoSinRed` | ya puesto en `lib/app.dart` | No lo agregues en tus pantallas |
 | `CatalogoRepositorio.nombreVisible` y `joinAlias` | `lib/features/perfil/catalogo/catalogo_repositorio.dart` | Nombre del ejercicio con el alias del usuario (lo necesitan ENT-39 y ENT-49) |
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
+| `diaDeHoyProvider` (`DiaDeHoy`, `EjercicioDelDia`) | `lib/features/entrenamiento/hoy_repositorio.dart` | Rutina de hoy con alias, descanso y avance; también los días que vienen |
+| `TemporizadorFlotante`, `temporizadorProvider` | `lib/features/entrenamiento/temporizador/` | Descanso o trabajo con hora de fin (lo usa ENT-49) |
+| `BitacoraRepositorio`, `ejercicioBitacoraProvider`, `sesionDeHoyProvider` | `lib/features/entrenamiento/bitacora/` | Series de hoy de un ejercicio (guardar, quitar y precarga), terminar ejercicio, estado y comentario de la sesión; ruta `/hoy/ejercicio/:idProgramado` |
 | Rutas `/perfil/catalogo`, `/perfil/editar`, `/perfil/mediciones`, `/perfil/equipo` | `lib/app.dart` | Abrir esas pantallas con `context.push(...)` |
+| `rutinasRepositorioProvider`, `RutinasRepositorio.consultaCicloParaHoy` y `consultaEjerciciosDelDia` | `lib/features/rutinas/rutinas_repositorio.dart` | Ciclos, días y ejercicios programados; el ciclo que usa Hoy (lo necesita ENT-58 para guardar la rutina de la IA) |
+| Rutas `/perfil/ciclos`, `/perfil/ciclos/:idCiclo` y `/perfil/ciclos/:idCiclo/dia/:idDia` | `lib/app.dart` | Abrir Mis ciclos, un ciclo o el editor de un día |
 
 ---
 
@@ -175,14 +191,30 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Ángel · nube, red, sincronización y comidas (`supabase/`, `lib/core/conectividad`, `lib/core/sync`, `lib/features/nube`, `lib/features/nutricion`)
 
-* **2026-11-17 · ENT-44 · Ángel · PR #11**
+* **2026-11-18 · ENT-44 · Ángel · PR #11**
   Qué: `MotorSync` sube lo pendiente a Supabase (upsert por id, lotes de 100, orden de llaves
   foráneas) al abrir la app, al volver la red y al iniciar sesión. Cliente de Supabase con `.env` y
   pantalla de prueba para entrar como demo.
-  Por qué / decisión: el demo de Supabase usa el mismo id que el del celular
-  (`supabase/ajustes_ent44.sql`) para no tocar los datos de prueba.
+  Las tablas hijas (días, ejercicios, registros, series) se filtran por su dueño.
+  Por qué / decisión: el demo de Supabase usa el mismo id que el del celular y
+  `supabase/ajustes_ent44.sql` crea sus 3 solicitudes de IA (decisión 13); con eso suben todas las
+  filas del demo (antes solo 19, revisión de Pablo). Probado contra PostgreSQL 16 con RLS: 532 de
+  532 filas, sin duplicar al repetir.
   Para el siguiente: corre la app con `--dart-define-from-file=.env`; ENT-41 debe iniciar sesión
-  con `ClienteSupabase.cliente` y ENT-54 lee `sincronizacionProvider`.
+  con `ClienteSupabase.cliente` y ENT-54 lee `sincronizacionProvider`. Quita `DEMO_PASSWORD` del
+  `.env` antes de armar el APK de entrega (ENT-62).
+
+* **2026-11-17 · ENT-46 · Ángel · PR #12**
+  Qué: `docs/reportes/sprint2.md`, corte al 17 de noviembre (estado de cada historia e impedimentos).
+  Para el siguiente: al cierre del sprint se completan puntos, burndown y retrospectiva.
+
+* **2026-11-17 · ENT-45 · Ángel · PR #10**
+  Qué: pestaña Comidas con total del día (calorías y macros con `SUM` por fecha de CDMX),
+  "Registrar a mano" en una hoja y editar o borrar al tocar una comida. Funciona en modo avión.
+  Por qué / decisión: sin meta calórica (no está en la ERS); borrar pide un segundo toque en vez
+  de un diálogo.
+  Para el siguiente: ENT-65 le pone la acción al botón "Escanear con cámara" (ya está con
+  `BotonConRed`); detalles en `lib/features/nutricion/LEEME.md`.
 
 * **2026-11-10 · ENT-14 · Ángel · PR #6**
   Qué: `hayRedProvider` revisa internet real (no solo Wi-Fi) y reintenta a los 10, 20, 40 y 60 s;
@@ -201,6 +233,16 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Axel · perfil, catálogo, rutinas e IA (`lib/features/perfil`, `lib/features/rutinas`, `lib/features/ia`)
 
+* **2026-11-17 · ENT-47 (ENT-83, ENT-84, ENT-85) · Axel · PR #15**
+  Qué: Perfil → Mis ciclos: crear ciclos con nombre y fechas, sus 7 días (rutina o descanso) y el
+  editor de cada día (agregar, quitar y reordenar ejercicios del catálogo; series, reps, peso,
+  descanso y trabajo). Archivar y reactivar; un ciclo archivado se ve en solo lectura.
+  Por qué / decisión: el límite sale de `plan.max_ciclos_activos`; al llegar a él se ofrece
+  archivar el ciclo actual o ver Premium (por ahora avisa "muy pronto" hasta ENT-52). Las fechas
+  se escriben dd/mm/aaaa porque la app no tiene el calendario de Android en español.
+  Para el siguiente: Hoy debe tomar el ciclo de `RutinasRepositorio.consultaCicloParaHoy` (ver
+  "Pendientes técnicos"). Quitar un ejercicio también marca sus alternativas (ENT-48).
+
 * **2026-11-10 · ENT-18 · Axel · PR #4 (integrado con #3)**
   Qué: editar perfil (objetivo, nivel, días, lesiones), mediciones biométricas y equipo que tiene
   el usuario, con validaciones y pruebas.
@@ -213,4 +255,45 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Paola · entrenamiento del día y calendario (`lib/features/entrenamiento`, `lib/features/calendario`)
 
-* *(Aún sin entradas. ENT-20 está en curso.)*
+* **2026-11-17 · ENT-50 (ENT-90) · Paola · PR #(pendiente)**
+  Qué: botón "Terminar ejercicio" en la pantalla del ejercicio (marca `registro_ejercicio.completado`
+  aunque falten series y regresa a Hoy; "Volver a abrir" lo desmarca). La marca "Sigue" de Hoy ya
+  avanza. Tarjeta "Sesión completa / parcial" en Hoy con el comentario libre del día.
+  Por qué / decisión: `BitacoraRepositorio._recalcularSesion` corre en la misma transacción cada vez
+  que cambia una serie o un ejercicio: 'completa' si todos los ejercicios del día están completados
+  con sus series objetivo; si no, 'parcial' (regla pura `estadoSesion`, con pruebas). `hora_inicio`
+  se guarda al crear la sesión y `hora_fin` con el último cambio (formato 'HH:MM:SS').
+  Para el siguiente: el calendario (ENT-60) ya puede leer `sesion_entrenamiento.estado` de los días
+  entrenados en la app. El comentario se guarda en `sesion_entrenamiento.comentario` para la IA (ENT-68).
+
+* **2026-11-17 · ENT-49 (ENT-87, ENT-88, ENT-89) · Paola · PR #(pendiente)**
+  Qué: bitácora rápida en `/hoy/ejercicio/:idProgramado` (`03_ejercicio.png`). Series precargadas
+  de la última vez del mismo `id_ejercicio` o de los objetivos; 1 toque guarda la serie y empieza el
+  descanso; tocar los números abre + y −. `BitacoraRepositorio` crea la sesión del día (una por
+  usuario y fecha, 'parcial'), el `registro_ejercicio` y cada `serie` en una transacción.
+  También los pendientes de la revisión del PR #9: el aviso del temporizador hace programar y
+  cancelar en orden (ya no suena si pausas o saltas al empezar), el permiso de alarmas exactas ya
+  no abre Ajustes solo (la tarjeta muestra un aviso con "Activar"), tiempo como "01:12" y pruebas
+  en `test/temporizador_test.dart` y `test/bitacora_test.dart`. Se quitó "Probar temporizador".
+  Por qué / decisión: el descanso empieza solo al marcar la serie (1 toque; el diseño dice
+  "Empezó al marcar la serie 2"). Una serie se actualiza si ya existe (índice único
+  `id_registro, numero_serie`) y quitar el ✓ la marca eliminada.
+  Para el siguiente: "Terminar ejercicio" y `registro_ejercicio.completado` son de ENT-50; hasta
+  entonces la marca "Sigue" de Hoy no avanza. "Cambiar solo hoy" es ENT-59. Se tocó
+  `lib/app.dart` solo para agregar la ruta hija de `/hoy`.
+
+* **2026-11-11 · ENT-19 (ENT-37, ENT-38) · Paola · PR #9**
+  Qué: temporizador de descanso y trabajo (`temporizadorProvider`, `TemporizadorFlotante`) con −15 s,
+  +15 s, Reiniciar y Saltar, y notificación local con sonido y vibración a la hora de fin.
+  Por qué / decisión: guarda la hora de fin en vez de contar segundos (no se desfasa en segundo
+  plano). Se agregaron permisos y receptores en AndroidManifest y se declaró `timezone` en
+  pubspec (ya venía con flutter_local_notifications, misma versión).
+  Para el siguiente: sin el permiso de alarmas exactas (Android 14+) el aviso puede llegar unos
+  segundos tarde. El botón "Probar temporizador" de Hoy (solo debug) se quita en ENT-49.
+
+* **2026-11-11 · ENT-20 (ENT-39, ENT-40) · Paola · PR #8**
+  Qué: pestaña Hoy como en `02_hoy.png`: encabezado, ejercicios con estado (hecho, "Sigue",
+  pendiente), botón "Seguir entrenando" y franjas de los días que vienen.
+  Por qué / decisión: si hoy no está en la rutina se muestra como descanso. El estado de cada
+  ejercicio se lee de `registro_ejercicio.completado` de la sesión de hoy.
+  Para el siguiente: el botón "Seguir entrenando" se conecta en ENT-49.
