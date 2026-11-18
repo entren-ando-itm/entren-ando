@@ -68,6 +68,10 @@ class EjercicioBitacora {
     required this.completado,
     this.trabajoSeg,
     this.fechaUltimaVez,
+    this.ultimaVez = const [],
+    this.grupoMuscular = '',
+    this.tipoMovimiento = '',
+    this.equipo,
   });
 
   final String idProgramado;
@@ -85,6 +89,14 @@ class EjercicioBitacora {
 
   /// Fecha (DATE) de la última vez, para mostrar "La última vez: 4 de noviembre".
   final String? fechaUltimaVez;
+
+  /// Series de la última vez (peso y repeticiones), para "La vez pasada: 4 × 12 con 120 kg".
+  final List<({double pesoKg, int repeticiones})> ultimaVez;
+
+  /// Del catálogo: "Pierna", "compuesto" y el equipo (null = peso corporal).
+  final String grupoMuscular;
+  final String tipoMovimiento;
+  final String? equipo;
 
   int get seriesGuardadas => series.where((s) => s.guardada).length;
 }
@@ -142,9 +154,11 @@ class BitacoraRepositorio {
     final filas = await _bd.rawQuery('''
       SELECT ep.id_programado, ep.id_ejercicio, ep.orden, ep.series_objetivo, ep.reps_objetivo,
              ep.peso_objetivo_kg, ep.descanso_seg, ep.trabajo_seg,
-             COALESCE(ue.nombre_alias, e.nombre_oficial) AS nombre
+             COALESCE(ue.nombre_alias, e.nombre_oficial) AS nombre,
+             e.grupo_muscular, e.tipo_movimiento, eq.nombre AS equipo
       FROM ejercicio_programado ep
       JOIN ejercicio e ON e.id_ejercicio = ep.id_ejercicio
+      LEFT JOIN equipo eq ON eq.id_equipo = e.id_equipo
       LEFT JOIN usuario_ejercicio ue
         ON ue.id_ejercicio = ep.id_ejercicio AND ue.id_usuario = ? AND ue.eliminado = 0
       WHERE ep.id_programado = ? AND ep.eliminado = 0
@@ -208,6 +222,10 @@ class BitacoraRepositorio {
       trabajoSeg: ep['trabajo_seg'] as int?,
       completado: registroHoy?.completado ?? false,
       fechaUltimaVez: fechaUltimaVez,
+      ultimaVez: seriesUltimaVez,
+      grupoMuscular: ep['grupo_muscular'] as String,
+      tipoMovimiento: ep['tipo_movimiento'] as String,
+      equipo: ep['equipo'] as String?,
       series: armarSeries(
         seriesObjetivo: ep['series_objetivo'] as int,
         repsObjetivo: ep['reps_objetivo'] as int,
