@@ -150,6 +150,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
 | `diaDeHoyProvider` (`DiaDeHoy`, `EjercicioDelDia`) | `lib/features/entrenamiento/hoy_repositorio.dart` | Rutina de hoy con alias, descanso y avance; también los días que vienen |
 | `TemporizadorFlotante`, `temporizadorProvider` | `lib/features/entrenamiento/temporizador/` | Descanso o trabajo con hora de fin (lo usa ENT-49) |
+| `BitacoraRepositorio`, `ejercicioBitacoraProvider`, `sesionDeHoyProvider` | `lib/features/entrenamiento/bitacora/` | Series de hoy de un ejercicio (guardar, quitar y precarga), terminar ejercicio, estado y comentario de la sesión; ruta `/hoy/ejercicio/:idProgramado` |
 | Rutas `/perfil/catalogo`, `/perfil/editar`, `/perfil/mediciones`, `/perfil/equipo` | `lib/app.dart` | Abrir esas pantallas con `context.push(...)` |
 
 ---
@@ -217,7 +218,34 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Paola · entrenamiento del día y calendario (`lib/features/entrenamiento`, `lib/features/calendario`)
 
-* **2026-11-11 · ENT-19 (ENT-37, ENT-38) · Paola · PR #(pendiente)**
+* **2026-11-17 · ENT-50 (ENT-90) · Paola · PR #(pendiente)**
+  Qué: botón "Terminar ejercicio" en la pantalla del ejercicio (marca `registro_ejercicio.completado`
+  aunque falten series y regresa a Hoy; "Volver a abrir" lo desmarca). La marca "Sigue" de Hoy ya
+  avanza. Tarjeta "Sesión completa / parcial" en Hoy con el comentario libre del día.
+  Por qué / decisión: `BitacoraRepositorio._recalcularSesion` corre en la misma transacción cada vez
+  que cambia una serie o un ejercicio: 'completa' si todos los ejercicios del día están completados
+  con sus series objetivo; si no, 'parcial' (regla pura `estadoSesion`, con pruebas). `hora_inicio`
+  se guarda al crear la sesión y `hora_fin` con el último cambio (formato 'HH:MM:SS').
+  Para el siguiente: el calendario (ENT-60) ya puede leer `sesion_entrenamiento.estado` de los días
+  entrenados en la app. El comentario se guarda en `sesion_entrenamiento.comentario` para la IA (ENT-68).
+
+* **2026-11-17 · ENT-49 (ENT-87, ENT-88, ENT-89) · Paola · PR #(pendiente)**
+  Qué: bitácora rápida en `/hoy/ejercicio/:idProgramado` (`03_ejercicio.png`). Series precargadas
+  de la última vez del mismo `id_ejercicio` o de los objetivos; 1 toque guarda la serie y empieza el
+  descanso; tocar los números abre + y −. `BitacoraRepositorio` crea la sesión del día (una por
+  usuario y fecha, 'parcial'), el `registro_ejercicio` y cada `serie` en una transacción.
+  También los pendientes de la revisión del PR #9: el aviso del temporizador hace programar y
+  cancelar en orden (ya no suena si pausas o saltas al empezar), el permiso de alarmas exactas ya
+  no abre Ajustes solo (la tarjeta muestra un aviso con "Activar"), tiempo como "01:12" y pruebas
+  en `test/temporizador_test.dart` y `test/bitacora_test.dart`. Se quitó "Probar temporizador".
+  Por qué / decisión: el descanso empieza solo al marcar la serie (1 toque; el diseño dice
+  "Empezó al marcar la serie 2"). Una serie se actualiza si ya existe (índice único
+  `id_registro, numero_serie`) y quitar el ✓ la marca eliminada.
+  Para el siguiente: "Terminar ejercicio" y `registro_ejercicio.completado` son de ENT-50; hasta
+  entonces la marca "Sigue" de Hoy no avanza. "Cambiar solo hoy" es ENT-59. Se tocó
+  `lib/app.dart` solo para agregar la ruta hija de `/hoy`.
+
+* **2026-11-11 · ENT-19 (ENT-37, ENT-38) · Paola · PR #9**
   Qué: temporizador de descanso y trabajo (`temporizadorProvider`, `TemporizadorFlotante`) con −15 s,
   +15 s, Reiniciar y Saltar, y notificación local con sonido y vibración a la hora de fin.
   Por qué / decisión: guarda la hora de fin en vez de contar segundos (no se desfasa en segundo

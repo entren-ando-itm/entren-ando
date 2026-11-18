@@ -8,6 +8,7 @@ import 'core/componentes/galeria_componentes.dart';
 import 'core/conectividad/aviso_sin_red.dart';
 import 'core/diseno.dart';
 import 'features/calendario/pantalla_calendario.dart';
+import 'features/entrenamiento/bitacora/pantalla_ejercicio.dart';
 import 'features/entrenamiento/pantalla_hoy.dart';
 import 'features/nutricion/pantalla_comidas.dart';
 import 'features/perfil/catalogo/pantalla_catalogo.dart';
@@ -37,7 +38,19 @@ final GoRouter rutas = GoRouter(
       builder: (context, state, navegacion) => EsqueletoPestanas(navegacion: navegacion),
       branches: [
         StatefulShellBranch(routes: [
-          GoRoute(path: '/hoy', builder: (context, state) => const PantallaHoy()),
+          GoRoute(
+            path: '/hoy',
+            builder: (context, state) => const PantallaHoy(),
+            routes: [
+              // ENT-49: bitácora del ejercicio (sin la barra de abajo).
+              GoRoute(
+                path: 'ejercicio/:idProgramado',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) =>
+                    PantallaEjercicio(idProgramado: state.pathParameters['idProgramado']!),
+              ),
+            ],
+          ),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(path: '/calendario', builder: (context, state) => const PantallaCalendario()),

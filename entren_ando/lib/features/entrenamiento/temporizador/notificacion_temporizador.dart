@@ -12,8 +12,9 @@ import 'package:timezone/timezone.dart' as tz;
 /// Permisos de Android que usa (están en `android/app/src/main/AndroidManifest.xml`):
 /// * `POST_NOTIFICATIONS`: mostrar notificaciones; en Android 13 o más se pide al usuario.
 /// * `SCHEDULE_EXACT_ALARM`: que suene en el segundo exacto y no minutos después.
-///   En Android 14 o más viene apagado y el usuario lo activa en Ajustes; si no
-///   lo activa, la notificación se programa "aproximada" (puede llegar un poco tarde).
+///   En Android 14 o más viene apagado: la tarjeta del temporizador muestra un
+///   aviso con "Activar" y el usuario decide; si no lo activa, la notificación
+///   se programa "aproximada" (puede llegar unos segundos tarde).
 /// * `VIBRATE`: vibrar.
 /// * `RECEIVE_BOOT_COMPLETED`: lo pide el paquete para reprogramar tras reiniciar el celular.
 final notificacionTemporizadorProvider =
@@ -45,10 +46,27 @@ class NotificacionTemporizador {
   bool _listo = false;
   bool _puedeExacta = false;
 
+  /// Las órdenes (programar / cancelar) se hacen una tras otra, en el orden en
+  /// que llegan. Así, si se pausa o se salta justo al empezar, el "cancelar"
+  /// nunca se adelanta al "programar" y el aviso no suena de más.
+  Future<void> _cola = Future<void>.value();
+
   AndroidFlutterLocalNotificationsPlugin? get _android =>
       _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
-  /// Prepara el paquete y pide permisos la primera vez que se usa el temporizador.
+  Future<void> _enCola(Future<void> Function() orden) {
+    final siguiente = _cola.then((_) => orden()).catchError((Object error) {
+      // El temporizador en pantalla sigue funcionando aunque falle el aviso.
+      debugPrint('Aviso del temporizador: $error');
+    });
+    _cola = siguiente;
+    return siguiente;
+  }
+
+  /// Prepara el paquete y pide el permiso de notificaciones la primera vez.
+  ///
+  /// El permiso de alarmas exactas ya **no** se pide solo: la tarjeta del
+  /// temporizador muestra un aviso con "Activar" (ver [pedirAlarmasExactas]).
   Future<void> _preparar() async {
     if (_listo) return;
     await _plugin.initialize(
@@ -60,19 +78,38 @@ class NotificacionTemporizador {
     if (android != null) {
       await android.requestNotificationsPermission();
       _puedeExacta = await android.canScheduleExactNotifications() ?? false;
-      if (!_puedeExacta) {
-        // Abre Ajustes → "Alarmas y recordatorios". Si el usuario no lo activa,
-        // seguimos con la notificación aproximada.
-        await android.requestExactAlarmsPermission();
-        _puedeExacta = await android.canScheduleExactNotifications() ?? false;
-      }
     }
     _listo = true;
   }
 
-  /// Programa (o reprograma) el aviso para la hora [fin].
-  Future<void> programar({required DateTime fin, required String titulo}) async {
+  /// true si el aviso puede sonar en el segundo exacto (Android 14+ lo pide aparte).
+  Future<bool> puedeSonarExacto() async {
     try {
+      await _cola;
+      await _preparar();
+      final android = _android;
+      if (android == null) return true;
+      _puedeExacta = await android.canScheduleExactNotifications() ?? false;
+      return _puedeExacta;
+    } catch (_) {
+      return true; // Si no se puede saber, no molestamos al usuario.
+    }
+  }
+
+  /// Abre Ajustes → "Alarmas y recordatorios". Solo cuando el usuario toca "Activar".
+  Future<void> pedirAlarmasExactas() async {
+    try {
+      await _preparar();
+      await _android?.requestExactAlarmsPermission();
+      _puedeExacta = await _android?.canScheduleExactNotifications() ?? _puedeExacta;
+    } catch (error) {
+      debugPrint('No se pudo pedir el permiso de alarmas exactas: $error');
+    }
+  }
+
+  /// Programa (o reprograma) el aviso para la hora [fin].
+  Future<void> programar({required DateTime fin, required String titulo}) {
+    return _enCola(() async {
       await _preparar();
       await _plugin.cancel(id: _id);
       if (!fin.isAfter(DateTime.now())) return;
@@ -88,19 +125,20 @@ class NotificacionTemporizador {
             ? AndroidScheduleMode.exactAllowWhileIdle
             : AndroidScheduleMode.inexactAllowWhileIdle,
       );
-    } catch (error) {
-      // El temporizador en pantalla sigue funcionando aunque falle el aviso.
-      debugPrint('No se pudo programar el aviso del temporizador: $error');
-    }
+    });
   }
 
   /// Quita el aviso pendiente ("Saltar", pausa o temporizador cerrado).
-  Future<void> cancelar() async {
-    try {
+  /// Espera a que termine lo anterior (por ejemplo, la preparación).
+  Future<void> cancelar() {
+    return _enCola(() async {
       if (!_listo) return;
       await _plugin.cancel(id: _id);
-    } catch (error) {
-      debugPrint('No se pudo cancelar el aviso del temporizador: $error');
-    }
+    });
   }
 }
+
+/// ¿Puede sonar en el segundo exacto? La tarjeta lo usa para mostrar el aviso.
+final alarmasExactasProvider = FutureProvider<bool>((ref) {
+  return ref.watch(notificacionTemporizadorProvider).puedeSonarExacto();
+});

@@ -1,12 +1,12 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/db/fechas.dart';
 import '../../core/diseno.dart';
+import 'bitacora/bitacora_repositorio.dart';
 import 'hoy_repositorio.dart';
-import 'temporizador/temporizador_flotante.dart';
 
 /// Pestaña Hoy: vista del día tipo horario escolar (ENT-20, ENT-39 y ENT-40).
 ///
@@ -76,44 +76,15 @@ class PantallaHoy extends ConsumerWidget {
           icono: Icons.play_arrow_rounded,
           alPresionar: () => _abrirEjercicio(context, siguiente),
         ),
-      // Solo en debug: probar el temporizador (ENT-19) sin la bitácora.
-      // Se quita cuando ENT-49 ponga el temporizador en la pantalla del ejercicio.
-      if (kDebugMode && siguiente != null) ...[
-        const SizedBox(height: Medidas.espacio2),
-        BotonTexto(
-          texto: 'Probar temporizador',
-          icono: Icons.timer_outlined,
-          anchoCompleto: true,
-          alPresionar: () => _probarTemporizador(context, siguiente),
-        ),
-      ],
+      // ENT-50: comentario libre de la sesión (la IA lo usa en el feedback).
+      const SizedBox(height: Medidas.espacio2),
+      const _ComentarioSesion(),
     ];
-  }
-
-  /// Hoja de prueba con el temporizador del ejercicio que sigue (solo debug).
-  void _probarTemporizador(BuildContext context, EjercicioDelDia ejercicio) {
-    mostrarHojaInferior<void>(
-      context: context,
-      constructor: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          EncabezadoHoja(titulo: ejercicio.nombre, subtitulo: 'Prueba del temporizador'),
-          const SizedBox(height: Medidas.espacio5),
-          TemporizadorFlotante(
-            nombreEjercicio: ejercicio.nombre,
-            descansoSeg: ejercicio.descansoSeg,
-            trabajoSeg: ejercicio.trabajoSeg,
-          ),
-        ],
-      ),
-    );
   }
 
   /// Abre la pantalla del ejercicio que sigue.
   void _abrirEjercicio(BuildContext context, EjercicioDelDia ejercicio) {
-    // TODO(ENT-49): navegar a la pantalla del ejercicio cuando exista, por ejemplo
-    // context.go('/hoy/ejercicio/${ejercicio.idProgramado}').
+    context.push('/hoy/ejercicio/${ejercicio.idProgramado}');
   }
 }
 
@@ -320,5 +291,100 @@ class _FranjasSemana extends StatelessWidget {
         : '${nombres.sublist(0, nombres.length - 1).join(', ')} y ${nombres.last}';
     final texto = lista[0] + lista.substring(1).toLowerCase();
     return '$texto: descanso';
+  }
+}
+
+/// Estado de la sesión de hoy y su comentario libre (ENT-50 / ENT-90).
+///
+/// Solo aparece cuando ya hay sesión (se marcó al menos una serie o un ejercicio).
+class _ComentarioSesion extends ConsumerWidget {
+  const _ComentarioSesion();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sesion = ref.watch(sesionDeHoyProvider).value;
+    if (sesion == null || sesion.estado == 'descanso') return const SizedBox.shrink();
+    final textos = Theme.of(context).textTheme;
+    final completa = sesion.estado == 'completa';
+    final comentario = sesion.comentario;
+
+    return Tarjeta(
+      alTocar: () => _editar(context, ref, comentario),
+      child: Row(
+        children: [
+          PuntoSemaforo(completa ? EstadoDia.completo : EstadoDia.parcial, tamano: 14),
+          const SizedBox(width: Medidas.espacio3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(completa ? 'Sesión completa' : 'Sesión parcial', style: textos.titleMedium),
+                Text(
+                  comentario ?? 'Agrega un comentario (por ejemplo, "me dolió el hombro")',
+                  style: textos.bodySmall,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.edit_outlined, size: 20, color: context.colores.tinta2),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _editar(BuildContext context, WidgetRef ref, String? actual) async {
+    final texto = await mostrarHojaInferior<String>(
+      context: context,
+      constructor: (context) => _HojaComentario(inicial: actual ?? ''),
+    );
+    if (texto == null) return;
+    final repositorio = await ref.read(bitacoraRepositorioProvider.future);
+    await repositorio?.guardarComentario(texto);
+    ref.invalidate(sesionDeHoyProvider);
+  }
+}
+
+class _HojaComentario extends StatefulWidget {
+  const _HojaComentario({required this.inicial});
+
+  final String inicial;
+
+  @override
+  State<_HojaComentario> createState() => _HojaComentarioState();
+}
+
+class _HojaComentarioState extends State<_HojaComentario> {
+  late final TextEditingController _controlador = TextEditingController(text: widget.inicial);
+
+  @override
+  void dispose() {
+    _controlador.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const EncabezadoHoja(titulo: 'Comentario del día', subtitulo: 'Lo verá la IA en tu feedback'),
+        const SizedBox(height: Medidas.espacio5),
+        CampoTexto(
+          etiqueta: 'Comentario',
+          controlador: _controlador,
+          pista: 'Me dolió el hombro',
+          maxLineas: 3,
+        ),
+        const SizedBox(height: Medidas.espacio5),
+        BotonSecundario(
+          texto: 'Guardar',
+          nivel: 2,
+          alPresionar: () => Navigator.pop(context, _controlador.text),
+        ),
+      ],
+    );
   }
 }
