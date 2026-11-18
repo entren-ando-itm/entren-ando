@@ -73,4 +73,40 @@ void main() {
     );
     expect(series.first.pesoKg, 0);
   });
+
+  group('Estado de la sesión (ENT-90)', () {
+    test('Completa: todos completados con sus series objetivo', () {
+      expect(
+        estadoSesion(const [
+          (completado: true, seriesHechas: 4, seriesObjetivo: 4),
+          (completado: true, seriesHechas: 5, seriesObjetivo: 3),
+        ]),
+        'completa',
+      );
+    });
+
+    test('Parcial: un ejercicio completado con menos series', () {
+      expect(
+        estadoSesion(const [
+          (completado: true, seriesHechas: 4, seriesObjetivo: 4),
+          (completado: true, seriesHechas: 2, seriesObjetivo: 3),
+        ]),
+        'parcial',
+      );
+    });
+
+    test('Parcial: falta terminar un ejercicio aunque tenga sus series', () {
+      expect(
+        estadoSesion(const [
+          (completado: true, seriesHechas: 4, seriesObjetivo: 4),
+          (completado: false, seriesHechas: 3, seriesObjetivo: 3),
+        ]),
+        'parcial',
+      );
+    });
+
+    test('Parcial: un día sin ejercicios no cuenta como completo', () {
+      expect(estadoSesion(const []), 'parcial');
+    });
+  });
 }

@@ -17,8 +17,10 @@ import 'bitacora_repositorio.dart';
 /// * Tocar los números abre una hoja con + y − para ajustar antes de confirmar.
 /// * Todo se guarda en la base local: funciona en modo avión (RNF-01).
 ///
-/// Pendiente en otras historias: "Terminar ejercicio" (ENT-50) y
-/// "Cambiar solo hoy" (ENT-59).
+/// * "Terminar ejercicio" (ENT-50) marca el ejercicio aunque falten series,
+///   recalcula el estado de la sesión y regresa a Hoy.
+///
+/// Pendiente en otra historia: "Cambiar solo hoy" (ENT-59).
 class PantallaEjercicio extends ConsumerStatefulWidget {
   const PantallaEjercicio({super.key, required this.idProgramado});
 
@@ -93,8 +95,47 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
               ? null
               : 'Empezó al marcar la serie $_serieDelDescanso',
         ),
+        const SizedBox(height: Medidas.espacio5),
+        // ENT-50: el diseño lo pone como botón secundario grande al final.
+        if (ejercicio.completado) ...[
+          const Aviso('Ejercicio terminado.', icono: Icons.check_circle_outline_rounded),
+          BotonTexto(
+            texto: 'Volver a abrir',
+            anchoCompleto: true,
+            alPresionar: _guardando ? null : () => _terminar(ejercicio, completado: false),
+          ),
+        ] else
+          BotonSecundario(
+            texto: 'Terminar ejercicio',
+            nivel: 2,
+            grande: true,
+            alPresionar: _guardando ? null : () => _terminar(ejercicio),
+          ),
       ],
     );
+  }
+
+  /// "Terminar ejercicio": lo marca completado aunque falten series y regresa a Hoy.
+  Future<void> _terminar(EjercicioBitacora ejercicio, {bool completado = true}) async {
+    final repositorio = await ref.read(bitacoraRepositorioProvider.future);
+    if (repositorio == null) return;
+    setState(() => _guardando = true);
+    try {
+      await repositorio.completarEjercicio(ejercicio.idProgramado, completado: completado);
+      if (completado) ref.read(temporizadorProvider.notifier).detener();
+      ref.invalidate(ejercicioBitacoraProvider(ejercicio.idProgramado));
+      ref.invalidate(diaDeHoyProvider);
+      ref.invalidate(sesionDeHoyProvider);
+      if (completado && mounted) Navigator.of(context).maybePop();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo terminar el ejercicio: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
   }
 
   /// "PIERNA · PRENSA · COMPUESTO" (los componentes ponen las mayúsculas).
@@ -146,6 +187,7 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
       _ajustes.remove(serie.numero);
       ref.invalidate(ejercicioBitacoraProvider(ejercicio.idProgramado));
       ref.invalidate(diaDeHoyProvider);
+      ref.invalidate(sesionDeHoyProvider);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

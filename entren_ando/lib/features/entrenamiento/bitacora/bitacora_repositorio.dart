@@ -11,6 +11,8 @@ import '../../../core/db/usuario_actual.dart';
 /// * ENT-87: al primer toque del día crea `sesion_entrenamiento` (una por usuario
 ///   y fecha, estado 'parcial'), un `registro_ejercicio` por ejercicio y cada
 ///   `serie`. Todo en la base local cifrada, así que funciona en modo avión.
+/// * ENT-50 / ENT-90: "Terminar ejercicio", el estado de la sesión (completa o
+///   parcial), hora_inicio, hora_fin y el comentario del día.
 /// * ENT-88: cada serie trae el peso y las repeticiones de la última vez que se
 ///   hizo ese `id_ejercicio`; si nunca se hizo, los objetivos de la rutina.
 ///
@@ -143,6 +145,25 @@ List<SerieBitacora> armarSeries({
   ];
 }
 
+/// La sesión de hoy: estado, comentario y horas.
+class SesionDeHoy {
+  const SesionDeHoy({required this.estado, this.comentario, this.horaInicio, this.horaFin});
+
+  /// 'completa', 'parcial' o 'descanso'.
+  final String estado;
+  final String? comentario;
+  final String? horaInicio;
+  final String? horaFin;
+}
+
+/// Regla de ENT-90: 'completa' si todos los ejercicios del día están completados
+/// con sus series objetivo; si no, 'parcial'. Función pura para poder probarla.
+String estadoSesion(List<({bool completado, int seriesHechas, int seriesObjetivo})> ejercicios) {
+  final completa = ejercicios.isNotEmpty &&
+      ejercicios.every((e) => e.completado && e.seriesHechas >= e.seriesObjetivo);
+  return completa ? 'completa' : 'parcial';
+}
+
 class BitacoraRepositorio {
   BitacoraRepositorio(this._bd, this._idUsuario);
 
@@ -270,19 +291,126 @@ class BitacoraRepositorio {
           ...valores,
         });
       }
+      await _recalcularSesion(txn, escritura);
     });
   }
 
   /// Quita el ✓ de una serie guardada hoy (se marca eliminada, nunca DELETE).
   Future<void> quitarSerie({required String idProgramado, required int numero}) async {
-    final registro = await _registroDeHoy(_bd, idProgramado, Fechas.hoy());
-    if (registro == null) return;
-    await EscrituraLocal(_bd).marcarEliminado(
-      'serie',
-      where: 'id_registro = ? AND numero_serie = ? AND eliminado = 0',
-      whereArgs: [registro.id, numero],
+    await _bd.transaction((txn) async {
+      final registro = await _registroDeHoy(txn, idProgramado, Fechas.hoy());
+      if (registro == null) return;
+      final escritura = EscrituraLocal(txn);
+      await escritura.marcarEliminado(
+        'serie',
+        where: 'id_registro = ? AND numero_serie = ? AND eliminado = 0',
+        whereArgs: [registro.id, numero],
+      );
+      await _recalcularSesion(txn, escritura);
+    });
+  }
+
+  /// "Terminar ejercicio" (ENT-50): `registro_ejercicio.completado = 1`, aunque
+  /// falten series. Con [completado] en false se vuelve a abrir.
+  Future<void> completarEjercicio(String idProgramado, {bool completado = true}) async {
+    await _bd.transaction((txn) async {
+      final escritura = EscrituraLocal(txn);
+      final idRegistro = await _asegurarRegistro(txn, escritura, idProgramado);
+      await escritura.actualizar(
+        'registro_ejercicio',
+        {'completado': completado ? 1 : 0},
+        where: 'id_registro = ?',
+        whereArgs: [idRegistro],
+      );
+      await _recalcularSesion(txn, escritura);
+    });
+  }
+
+  /// La sesión de hoy (null si todavía no se entrena).
+  Future<SesionDeHoy?> sesionDeHoy() async {
+    final filas = await _bd.rawQuery('''
+      SELECT id_sesion, estado, comentario, hora_inicio, hora_fin
+      FROM sesion_entrenamiento
+      WHERE id_usuario = ? AND fecha = ? AND eliminado = 0
+      ORDER BY creado_en
+      LIMIT 1
+    ''', [_idUsuario, Fechas.hoy()]);
+    if (filas.isEmpty) return null;
+    final f = filas.first;
+    return SesionDeHoy(
+      estado: f['estado'] as String,
+      comentario: f['comentario'] as String?,
+      horaInicio: f['hora_inicio'] as String?,
+      horaFin: f['hora_fin'] as String?,
     );
   }
+
+  /// Comentario libre de la sesión de hoy ("me dolió el hombro"). Lo usa la IA
+  /// en el feedback (ENT-68). Vacío = sin comentario.
+  Future<void> guardarComentario(String texto) async {
+    final limpio = texto.trim();
+    await EscrituraLocal(_bd).actualizar(
+      'sesion_entrenamiento',
+      {'comentario': limpio.isEmpty ? null : limpio},
+      where: 'id_usuario = ? AND fecha = ? AND eliminado = 0',
+      whereArgs: [_idUsuario, Fechas.hoy()],
+    );
+  }
+
+  /// Regla del estado de la sesión de hoy (ENT-90), cada vez que cambia una
+  /// serie o un ejercicio:
+  /// * **completa** (verde): todos los ejercicios del día están completados y
+  ///   cada uno tiene al menos sus series objetivo guardadas.
+  /// * **parcial** (naranja): cualquier otro caso con la sesión ya empezada.
+  /// También guarda hora_fin (la hora del último cambio).
+  Future<void> _recalcularSesion(Transaction txn, EscrituraLocal escritura) async {
+    final sesiones = await txn.rawQuery('''
+      SELECT id_sesion, id_dia, hora_inicio
+      FROM sesion_entrenamiento
+      WHERE id_usuario = ? AND fecha = ? AND eliminado = 0
+      ORDER BY creado_en
+      LIMIT 1
+    ''', [_idUsuario, Fechas.hoy()]);
+    if (sesiones.isEmpty) return;
+    final sesion = sesiones.first;
+
+    // Por cada ejercicio de la plantilla del día: ¿completado y con sus series?
+    final avance = await txn.rawQuery('''
+      SELECT ep.series_objetivo,
+             COALESCE(MAX(r.completado), 0) AS completado,
+             (SELECT COUNT(*) FROM serie x
+              JOIN registro_ejercicio rx ON rx.id_registro = x.id_registro
+              WHERE rx.id_sesion = ? AND rx.id_programado = ep.id_programado
+                AND rx.eliminado = 0 AND x.eliminado = 0) AS series_hechas
+      FROM ejercicio_programado ep
+      LEFT JOIN registro_ejercicio r
+        ON r.id_programado = ep.id_programado AND r.id_sesion = ? AND r.eliminado = 0
+      WHERE ep.id_dia = ? AND ep.eliminado = 0
+      GROUP BY ep.id_programado
+    ''', [sesion['id_sesion'], sesion['id_sesion'], sesion['id_dia']]);
+
+    final completa = estadoSesion([
+      for (final f in avance)
+        (
+          completado: f['completado'] == 1,
+          seriesHechas: f['series_hechas'] as int,
+          seriesObjetivo: f['series_objetivo'] as int,
+        ),
+    ]);
+
+    final ahora = Fechas.hora(Fechas.ahoraCdmx());
+    await escritura.actualizar(
+      'sesion_entrenamiento',
+      {
+        'estado': completa,
+        'hora_inicio': sesion['hora_inicio'] ?? ahora,
+        'hora_fin': ahora,
+      },
+      where: 'id_sesion = ?',
+      whereArgs: [sesion['id_sesion']],
+    );
+  }
+
 
   /// Registro de hoy para este ejercicio de la rutina, si ya existe.
   Future<({String id, bool completado})?> _registroDeHoy(
@@ -373,6 +501,12 @@ final bitacoraRepositorioProvider = FutureProvider<BitacoraRepositorio?>((ref) a
 
 /// Un ejercicio de hoy con sus series. Después de guardar, invalídalo:
 /// `ref.invalidate(ejercicioBitacoraProvider(idProgramado))`.
+/// La sesión de hoy (estado y comentario). Invalídalo después de guardar.
+final sesionDeHoyProvider = FutureProvider<SesionDeHoy?>((ref) async {
+  final repositorio = await ref.watch(bitacoraRepositorioProvider.future);
+  return repositorio?.sesionDeHoy();
+});
+
 final ejercicioBitacoraProvider =
     FutureProvider.family<EjercicioBitacora?, String>((ref, idProgramado) async {
   final repositorio = await ref.watch(bitacoraRepositorioProvider.future);
