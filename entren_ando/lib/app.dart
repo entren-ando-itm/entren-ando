@@ -16,6 +16,7 @@ import 'features/perfil/pantalla_editar_perfil.dart';
 import 'features/perfil/pantalla_equipo.dart';
 import 'features/perfil/pantalla_mediciones.dart';
 import 'features/perfil/pantalla_perfil.dart';
+import 'features/rutinas/alternativas/pantalla_alternativas.dart';
 import 'features/rutinas/pantalla_ciclo.dart';
 import 'features/rutinas/pantalla_ciclos.dart';
 import 'features/rutinas/pantalla_editor_dia.dart';
@@ -106,6 +107,15 @@ final GoRouter rutas = GoRouter(
                           idCiclo: state.pathParameters['idCiclo']!,
                           idDia: state.pathParameters['idDia']!,
                         ),
+                        routes: [
+                          // ENT-48: alternativas de un ejercicio programado.
+                          GoRoute(
+                            path: 'alternativas/:idProgramado',
+                            parentNavigatorKey: navegadorRaiz,
+                            builder: (context, state) =>
+                                PantallaAlternativas(idProgramado: state.pathParameters['idProgramado']!),
+                          ),
+                        ],
                       ),
                     ],
                   ),

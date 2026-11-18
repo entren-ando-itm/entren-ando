@@ -115,9 +115,23 @@ class _ContenidoEditorState extends ConsumerState<_ContenidoEditor> {
     if (repositorio == null || !mounted) return;
     final cambio = await mostrarHojaInferior<bool>(
       context: context,
-      constructor: (contexto) => _HojaEjercicio(ejercicio: ejercicio, repositorio: repositorio),
+      constructor: (contexto) => _HojaEjercicio(
+        ejercicio: ejercicio,
+        repositorio: repositorio,
+        alAlternativas: () {
+          Navigator.pop(contexto);
+          _abrirAlternativas(ejercicio);
+        },
+      ),
     );
     if (cambio == true) refrescarRutinas(ref);
+  }
+
+  /// Abre las alternativas de un ejercicio (ENT-48).
+  void _abrirAlternativas(EjercicioProgramado ejercicio) {
+    context.push(
+      '/perfil/ciclos/${widget.ciclo.idCiclo}/dia/${widget.dia.idDia}/alternativas/${ejercicio.idProgramado}',
+    );
   }
 
   @override
@@ -207,7 +221,8 @@ class _ContenidoEditorState extends ConsumerState<_ContenidoEditor> {
                       _FilaEjercicio(
                         ejercicio: datos[i],
                         soloLectura: _soloLectura,
-                        alTocar: _soloLectura ? null : () => _editar(datos[i]),
+                        // En solo lectura, tocar abre sus alternativas (también en solo lectura).
+                        alTocar: _soloLectura ? () => _abrirAlternativas(datos[i]) : () => _editar(datos[i]),
                         alSubir: (_soloLectura || i == 0)
                             ? null
                             : () => _guardar((repo) => repo.moverEjercicio(datos[i].idProgramado, i - 1)),
@@ -275,6 +290,11 @@ class _FilaEjercicio extends StatelessWidget {
                   Text(ejercicio.nombreOficial, style: textos.bodySmall),
                 const SizedBox(height: 2),
                 Text(resumenProgramado(ejercicio), style: textos.bodySmall),
+                if (ejercicio.alternativas > 0)
+                  Text(
+                    ejercicio.alternativas == 1 ? '1 alternativa' : '${ejercicio.alternativas} alternativas',
+                    style: textos.bodySmall,
+                  ),
               ],
             ),
           ),
@@ -369,10 +389,13 @@ class _SelectorEjercicioState extends ConsumerState<_SelectorEjercicio> {
 /// Hoja para editar series, repeticiones, peso, descanso y trabajo, o quitar
 /// el ejercicio del día. Devuelve true si hubo cambio.
 class _HojaEjercicio extends StatefulWidget {
-  const _HojaEjercicio({required this.ejercicio, required this.repositorio});
+  const _HojaEjercicio({required this.ejercicio, required this.repositorio, required this.alAlternativas});
 
   final EjercicioProgramado ejercicio;
   final RutinasRepositorio repositorio;
+
+  /// Cierra la hoja y abre las alternativas de este ejercicio.
+  final VoidCallback alAlternativas;
 
   @override
   State<_HojaEjercicio> createState() => _HojaEjercicioState();
@@ -491,6 +514,12 @@ class _HojaEjercicioState extends State<_HojaEjercicio> {
           ],
           const SizedBox(height: Medidas.espacio5),
           BotonPrincipal(texto: 'Guardar', icono: Icons.check_rounded, alPresionar: _guardando ? null : _guardar),
+          const SizedBox(height: Medidas.espacio2),
+          BotonSecundario(
+            texto: ejercicio.alternativas == 0 ? 'Alternativas' : 'Alternativas (${ejercicio.alternativas})',
+            icono: Icons.swap_horiz_rounded,
+            alPresionar: _guardando ? null : widget.alAlternativas,
+          ),
           const SizedBox(height: Medidas.espacio2),
           BotonTexto(
             texto: 'Quitar del día',

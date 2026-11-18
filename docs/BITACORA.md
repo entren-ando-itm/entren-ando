@@ -158,6 +158,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | Rutas `/perfil/catalogo`, `/perfil/editar`, `/perfil/mediciones`, `/perfil/equipo` | `lib/app.dart` | Abrir esas pantallas con `context.push(...)` |
 | `rutinasRepositorioProvider`, `RutinasRepositorio.consultaCicloParaHoy` y `consultaEjerciciosDelDia` | `lib/features/rutinas/rutinas_repositorio.dart` | Ciclos, días y ejercicios programados; el ciclo que usa Hoy (lo necesita ENT-58 para guardar la rutina de la IA) |
 | Rutas `/perfil/ciclos`, `/perfil/ciclos/:idCiclo` y `/perfil/ciclos/:idCiclo/dia/:idDia` | `lib/app.dart` | Abrir Mis ciclos, un ciclo o el editor de un día |
+| `alternativasRepositorioProvider` y `AlternativasRepositorio.consultaAlternativas` | `lib/features/rutinas/alternativas/alternativas_repositorio.dart` | Alternativas de un ejercicio por prioridad, con alias (para cambiar de ejercicio en la sesión, RF-04) |
 
 ---
 
@@ -211,6 +212,14 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Pendiente: zona horaria de CDMX y UPDATE de `feedback_ia` (ver "Pendientes técnicos").
 
 ### Axel · perfil, catálogo, rutinas e IA (`lib/features/perfil`, `lib/features/rutinas`, `lib/features/ia`)
+
+* **2026-11-17 · ENT-48 (ENT-86) · Axel · PR #(pendiente)**
+  Qué: alternativas por ejercicio programado (Editor del día → tocar ejercicio → Alternativas):
+  hasta 3 del catálogo con prioridad 1 a 3, sin repetir ni usar el mismo ejercicio. El selector
+  muestra por defecto el mismo grupo muscular. Subir, bajar y quitar renumeran la prioridad.
+  Por qué / decisión: quitar es `eliminado = 1`; en ciclos archivados se ven en solo lectura.
+  Para el siguiente: ENT-58 guarda las alternativas de la IA con prioridad 1, 2, 3 y aquí se
+  editan. RF-04 (cambiar en la sesión) las lee con `AlternativasRepositorio.consultaAlternativas`.
 
 * **2026-11-17 · ENT-47 (ENT-83, ENT-84, ENT-85) · Axel · PR #15**
   Qué: Perfil → Mis ciclos: crear ciclos con nombre y fechas, sus 7 días (rutina o descanso) y el
