@@ -213,7 +213,7 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Axel · perfil, catálogo, rutinas e IA (`lib/features/perfil`, `lib/features/rutinas`, `lib/features/ia`)
 
-* **2026-11-17 · ENT-48 (ENT-86) · Axel · PR #(pendiente)**
+* **2026-11-17 · ENT-48 (ENT-86) · Axel · PR #17**
   Qué: alternativas por ejercicio programado (Editor del día → tocar ejercicio → Alternativas):
   hasta 3 del catálogo con prioridad 1 a 3, sin repetir ni usar el mismo ejercicio. El selector
   muestra por defecto el mismo grupo muscular. Subir, bajar y quitar renumeran la prioridad.
