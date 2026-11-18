@@ -211,7 +211,7 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Axel · perfil, catálogo, rutinas e IA (`lib/features/perfil`, `lib/features/rutinas`, `lib/features/ia`)
 
-* **2026-11-17 · ENT-47 (ENT-83, ENT-84, ENT-85) · Axel · PR #(pendiente)**
+* **2026-11-17 · ENT-47 (ENT-83, ENT-84, ENT-85) · Axel · PR #15**
   Qué: Perfil → Mis ciclos: crear ciclos con nombre y fechas, sus 7 días (rutina o descanso) y el
   editor de cada día (agregar, quitar y reordenar ejercicios del catálogo; series, reps, peso,
   descanso y trabajo). Archivar y reactivar; un ciclo archivado se ve en solo lectura.
