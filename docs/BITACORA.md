@@ -124,6 +124,9 @@ Problemas que ya le pasaron a alguien, con su solución.
   Manager.
 * **Error de compileSdk:** el proyecto usa `compileSdk = 37` y
   `android.suppressUnsupportedCompileSdk=37` en `android/gradle.properties`. No los cambies.
+* **Después de `flutter upgrade` falla Gradle ("JVM 17 or later" o "Android Gradle Plugin version ... is lower"):**
+  usa el Java de Android Studio con `flutter config --jdk-dir "C:\Program Files\Android\Android Studio\jbr"`,
+  reabre Git Bash y corre `flutter clean`. El proyecto usa Android Gradle Plugin 9.1.1 y Gradle 9.5.0 (PR de ENT-22).
 * **Cambié el esquema y la app truena:** desinstala la app del emulador para que la base se cree de
   nuevo (o sube `BaseDatos.version` con su migración, con acuerdo del equipo).
 * **Los datos demo tienen fechas viejas:** Perfil → "Reiniciar datos de prueba" (solo en debug).
@@ -166,6 +169,11 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Pablo · base, diseño y cuenta (`lib/core/db`, `lib/core/tema`, `lib/core/componentes`, `lib/features/cuenta`)
+
+* **2026-11-17 · ENT-22 · Pablo · PR #13**
+  Qué: Android Gradle Plugin 9.1.0 → 9.1.1 y Gradle 9.3.1 → 9.5.0, porque el Flutter nuevo pide
+  mínimo AGP 9.1.1 y ya no compilaba.
+  Para el siguiente: después de `flutter upgrade`, revisa la trampa de Gradle en "Trampas conocidas".
 
 * **2026-11-11 · ENT-24 · Pablo · bitácora**
   Qué: se crea esta bitácora y la regla en AGENTS.md y CLAUDE.md para mantenerla al día.
