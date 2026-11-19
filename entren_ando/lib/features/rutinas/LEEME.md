@@ -13,6 +13,8 @@ Dueño: Axel. Historias: ENT-47 (ciclos editables con límite del plan gratuito)
 | `pantalla_ciclos.dart` | Mis ciclos (activos y archivados) y la hoja para crear o editar un ciclo |
 | `pantalla_ciclo.dart` | Un ciclo con sus 7 días; archivar o reactivar |
 | `pantalla_editor_dia.dart` | Editor de un día: rutina o descanso, nombre y ejercicios del catálogo |
+| `alternativas/alternativas_repositorio.dart` | `AlternativasRepositorio`: hasta 3 alternativas por ejercicio, prioridad 1 a 3, sin repetir |
+| `alternativas/pantalla_alternativas.dart` | Pantalla de alternativas (se abre desde la hoja de un ejercicio en el editor) |
 
 ## Reglas
 
@@ -26,3 +28,5 @@ Dueño: Axel. Historias: ENT-47 (ciclos editables con límite del plan gratuito)
 * El nombre de cada ejercicio usa `CatalogoRepositorio.nombreVisible` (alias); a la IA se manda
   `id_ejercicio` y `nombre_oficial`.
 * Hoy debe usar `RutinasRepositorio.consultaCicloParaHoy` (el activo con `fecha_inicio` más reciente).
+* **Alternativas (ENT-48):** máximo 3 por ejercicio, sin repetir ni usar el mismo ejercicio; la
+  prioridad siempre queda 1, 2, 3 al mover o quitar. El selector propone el mismo grupo muscular.

@@ -77,6 +77,7 @@ class EjercicioProgramado {
     required this.descansoSeg,
     this.pesoKg,
     this.trabajoSeg,
+    this.alternativas = 0,
   });
 
   final String idProgramado;
@@ -93,6 +94,9 @@ class EjercicioProgramado {
   final double? pesoKg;
   final int descansoSeg;
   final int? trabajoSeg;
+
+  /// Cuántas alternativas tiene (ENT-48).
+  final int alternativas;
 }
 
 /// Cuántos ciclos activos permite el plan del usuario y cuántos tiene.
@@ -395,7 +399,9 @@ class RutinasRepositorio {
     SELECT ep.id_programado, ep.id_dia, ep.id_ejercicio, ep.orden, ep.series_objetivo,
            ep.reps_objetivo, ep.peso_objetivo_kg, ep.descanso_seg, ep.trabajo_seg,
            e.nombre_oficial, e.grupo_muscular,
-           ${CatalogoRepositorio.nombreVisible} AS nombre
+           ${CatalogoRepositorio.nombreVisible} AS nombre,
+           (SELECT COUNT(*) FROM alternativa_ejercicio a
+            WHERE a.id_programado = ep.id_programado AND a.eliminado = 0) AS alternativas
     FROM ejercicio_programado ep
     JOIN ejercicio e ON e.id_ejercicio = ep.id_ejercicio
     ${CatalogoRepositorio.joinAlias}
@@ -419,6 +425,7 @@ class RutinasRepositorio {
               pesoKg: (f['peso_objetivo_kg'] as num?)?.toDouble(),
               descansoSeg: f['descanso_seg'] as int,
               trabajoSeg: f['trabajo_seg'] as int?,
+              alternativas: f['alternativas'] as int,
             ))
         .toList();
   }
