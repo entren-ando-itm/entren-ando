@@ -7,9 +7,11 @@ import 'package:go_router/go_router.dart';
 import 'core/componentes/galeria_componentes.dart';
 import 'core/conectividad/aviso_sin_red.dart';
 import 'core/diseno.dart';
+import 'core/sync/sincronizacion.dart';
 import 'features/calendario/pantalla_calendario.dart';
 import 'features/entrenamiento/bitacora/pantalla_ejercicio.dart';
 import 'features/entrenamiento/pantalla_hoy.dart';
+import 'features/nube/pantalla_nube_prueba.dart';
 import 'features/nutricion/pantalla_comidas.dart';
 import 'features/perfil/catalogo/pantalla_catalogo.dart';
 import 'features/perfil/pantalla_editar_perfil.dart';
@@ -128,6 +130,14 @@ final GoRouter rutas = GoRouter(
                   parentNavigatorKey: navegadorRaiz,
                   builder: (context, state) => const GaleriaComponentes(),
                 ),
+              // Solo en modo de prueba: sesión del demo en Supabase y sincronizar
+              // a mano (ENT-44).
+              if (kDebugMode)
+                GoRoute(
+                  path: 'nube',
+                  parentNavigatorKey: navegadorRaiz,
+                  builder: (context, state) => const PantallaNubePrueba(),
+                ),
             ],
           ),
         ]),
@@ -150,10 +160,13 @@ class EntrenAndoApp extends ConsumerWidget {
       routerConfig: rutas,
       // Íconos de la barra de estado oscuros en modo claro y claros en oscuro.
       // AvisoSinRed muestra la banda "Sin conexión" arriba de todas las
-      // pantallas (ENT-14).
+      // pantallas (ENT-14) y SincronizacionAutomatica sube los pendientes al
+      // abrir la app y al volver la red (ENT-44).
       builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
         value: TemaEntrenAndo.barraDelSistema(Theme.of(context).brightness),
-        child: AvisoSinRed(child: child ?? const SizedBox.shrink()),
+        child: AvisoSinRed(
+          child: SincronizacionAutomatica(child: child ?? const SizedBox.shrink()),
+        ),
       ),
     );
   }

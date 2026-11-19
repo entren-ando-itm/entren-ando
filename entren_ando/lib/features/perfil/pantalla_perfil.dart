@@ -179,6 +179,12 @@ class PantallaPerfil extends ConsumerWidget {
                         anchoCompleto: true,
                         alPresionar: () => context.push('/perfil/componentes'),
                       ),
+                      BotonTexto(
+                        texto: 'Nube y sincronización',
+                        icono: Icons.cloud_outlined,
+                        anchoCompleto: true,
+                        alPresionar: () => context.push('/perfil/nube'),
+                      ),
                     ],
                   ),
                 ),

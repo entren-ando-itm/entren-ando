@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
 import 'core/tema/modo_tema.dart';
+import 'features/nube/cliente_supabase.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,5 +12,8 @@ Future<void> main() async {
   await initializeDateFormatting('es');
   // Modo claro u oscuro que eligió el usuario (Perfil → Ajustes → Tema).
   await ModoTema.cargar();
+  // Conexión con Supabase para respaldar en la nube (ENT-44). Sin el archivo
+  // .env la app funciona igual, sin sincronizar.
+  await ClienteSupabase.iniciar();
   runApp(const ProviderScope(child: EntrenAndoApp()));
 }
