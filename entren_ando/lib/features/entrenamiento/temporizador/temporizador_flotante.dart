@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/diseno.dart';
+import 'notificacion_temporizador.dart';
 import 'temporizador.dart';
 
 /// Tarjeta del temporizador de descanso y trabajo (ENT-19 / ENT-37).
@@ -26,11 +27,15 @@ class TemporizadorFlotante extends ConsumerStatefulWidget {
     required this.nombreEjercicio,
     required this.descansoSeg,
     this.trabajoSeg,
+    this.detalle,
   });
 
   final String nombreEjercicio;
   final int descansoSeg;
   final int? trabajoSeg;
+
+  /// Texto junto a la etiqueta, por ejemplo "Empezó al marcar la serie 2".
+  final String? detalle;
 
   @override
   ConsumerState<TemporizadorFlotante> createState() => _TemporizadorFlotanteState();
@@ -90,7 +95,10 @@ class _TemporizadorFlotanteState extends ConsumerState<TemporizadorFlotante> {
         children: [
           // "DESCANSO · PRESS DE BANCA"
           EtiquetaSeccion(
-            terminado ? '$modo terminado · ${estado.nombreEjercicio}' : '$modo · ${estado.nombreEjercicio}',
+            [
+              terminado ? '$modo terminado' : modo,
+              widget.detalle ?? estado.nombreEjercicio,
+            ].join(' · '),
           ),
           const SizedBox(height: Medidas.espacio2),
           Semantics(
@@ -147,6 +155,22 @@ class _TemporizadorFlotanteState extends ConsumerState<TemporizadorFlotante> {
               ),
             ],
           ),
+          // Android 14+: sin "Alarmas y recordatorios" el aviso puede llegar tarde.
+          // Se explica y el usuario decide; no se abre Ajustes por su cuenta.
+          if (ref.watch(alarmasExactasProvider).value == false) ...[
+            const SizedBox(height: Medidas.espacio4),
+            const Aviso(
+              'Para que suene en el segundo exacto, activa "Alarmas y recordatorios".',
+              icono: Icons.alarm_outlined,
+            ),
+            BotonTexto(
+              texto: 'Activar',
+              alPresionar: () async {
+                await ref.read(notificacionTemporizadorProvider).pedirAlarmasExactas();
+                ref.invalidate(alarmasExactasProvider);
+              },
+            ),
+          ],
         ],
       ),
     );

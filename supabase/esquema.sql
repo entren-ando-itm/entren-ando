@@ -26,6 +26,8 @@
 -- Después correr docs/12_catalogo_semilla.sql y supabase/politicas.sql.
 -- =====================================================================
 
+-- Las fechas regresan en hora de Ciudad de México y no cambian de día (ENT-44).
+ALTER DATABASE postgres SET timezone TO 'America/Mexico_City';
 
 -- ---------------------------------------------------------------------
 -- Catálogos (id entero fijo, solo lectura)
