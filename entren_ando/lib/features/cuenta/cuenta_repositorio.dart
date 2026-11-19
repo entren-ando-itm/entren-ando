@@ -68,4 +68,14 @@ class MensajesCuenta {
   static const String sinRedRegistro =
       'Sin conexión. Necesitas internet solo para crear tu cuenta; después la app funciona sin red.';
   static const String errorGeneral = 'No se pudo conectar. Revisa tu internet e intenta otra vez.';
+  static const String sinSupabase =
+      'Falta conectar la app con Supabase (archivo .env). En modo de prueba puedes entrar como demo.';
+  static const String correoSinConfirmar =
+      'Confirma tu correo con el enlace que te enviamos y vuelve a intentar.';
+  static const String confirmaTuCorreo =
+      'Te enviamos un correo para confirmar tu cuenta. Después inicia sesión.';
+  static const String correoEnUso = 'No se pudo crear la cuenta con ese correo. Si ya tienes una, inicia sesión.';
+  static const String contrasenaDebil = 'Esa contraseña no se puede usar. Prueba con una más larga.';
+  static const String revisaTuCorreo =
+      'Si el correo tiene cuenta, te llegará un enlace para cambiar la contraseña.';
 }

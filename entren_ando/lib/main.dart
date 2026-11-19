@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
 import 'core/tema/modo_tema.dart';
+import 'features/cuenta/sesion_cuenta.dart';
 import 'features/nube/cliente_supabase.dart';
 
 Future<void> main() async {
@@ -15,5 +16,8 @@ Future<void> main() async {
   // Conexión con Supabase para respaldar en la nube (ENT-44). Sin el archivo
   // .env la app funciona igual, sin sincronizar.
   await ClienteSupabase.iniciar();
+  // Sesión guardada: si ya entraste antes, abre directo en Hoy, aun sin
+  // internet (ENT-41).
+  await Cuenta.cargar();
   runApp(const ProviderScope(child: EntrenAndoApp()));
 }
