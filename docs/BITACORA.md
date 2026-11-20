@@ -95,6 +95,17 @@ Lo que ya se acordó. La IA no debe proponer lo contrario sin hablarlo en el dai
     escaneada y el feedback apuntan a una solicitud que sí existe en Supabase al sincronizar
     (ENT-44; lo usan ENT-101 de Axel y ENT-109). Las del usuario demo las crea
     `supabase/ajustes_ent44.sql`.
+14. **Sesión (ENT-41):** sin sesión la app abre en el inicio de sesión (`/entrar`); en modo debug
+    hay "Entrar como demo" para trabajar sin internet ni cuenta. La contraseña nunca se guarda en
+    el celular: la sesión la guarda `supabase_flutter`, así que después se entra sin red. Si el
+    correo o la contraseña están mal, el mensaje es el mismo en los dos casos.
+15. **Aviso de privacidad aceptado (ENT-42):** su versión y fecha van en el `user_metadata` de
+    Supabase Auth (`aviso_version`, `aviso_aceptado_en`), no en una tabla. La app trae una copia en
+    `assets/legal/aviso_privacidad.md` para leerlo sin red; si cambia el aviso, se copia de nuevo y
+    se sube `Cuenta.versionAviso` (una prueba lo revisa).
+16. **Cerrar sesión (ENT-43):** por ahora NO borra los datos del celular, porque todavía no existe
+    la bajada desde la nube (ENT-53) y el usuario vería su app vacía al volver. Si hay cambios sin
+    subir, avisa y deja subirlos antes de salir.
 
 ---
 
@@ -112,6 +123,8 @@ Cosas detectadas que todavía no se arreglan. Quien la resuelva, la tacha (~~as�
   activo con `LIMIT 1` sin orden; con Premium puede haber varios y ENT-47 pide el de `fecha_inicio`
   más reciente. Arreglo: usar `RutinasRepositorio.consultaCicloParaHoy` (o agregar
   `ORDER BY fecha_inicio DESC, creado_en DESC`). Con el plan Gratuito no se nota.
+* **Borrar los datos al cerrar sesión (para ENT-53, Ángel / Pablo).** ENT-43 lo pide, pero se activa
+  cuando exista la bajada desde la nube (decisión 16).
 
 ---
 
@@ -149,7 +162,9 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 
 | Qué | Dónde | Para qué |
 | --- | --- | --- |
-| `baseDatosProvider`, `usuarioActualIdProvider` | `lib/core/db` | La única conexión a la base y el usuario actual (demo en debug; ENT-41 lo cambia por el de la sesión) |
+| `baseDatosProvider`, `usuarioActualIdProvider` | `lib/core/db` | La única conexión a la base y el usuario que inició sesión (null si nadie ha entrado) |
+| `sesionActualProvider` (correo y si es el demo) y `Cuenta.cerrarSesion()` | `lib/core/db/usuario_actual.dart`, `lib/features/cuenta/sesion_cuenta.dart` | Quién usa la app; al cambiar la sesión, go_router manda a `/entrar` o a Hoy |
+| Rutas `/entrar`, `/registro`, `/aviso` y `/perfil/cuenta` | `lib/app.dart` | Inicio de sesión, crear cuenta, aviso de privacidad y Cuenta (cerrar sesión) |
 | `EscrituraLocal` (`insertar`, `actualizar`, `marcarEliminado`) | `lib/core/db/escritura_local.dart` | Toda escritura: llena fechas, UUID y `pendiente_sync` |
 | `Fechas.hoy()`, `Fechas.ahoraIso()`, `Fechas.hoyComoFecha()` | `lib/core/db/fechas.dart` | Fechas en hora de CDMX |
 | `import 'package:entren_ando/core/diseno.dart'` | `lib/core/tema`, `lib/core/componentes` | Tema, medidas y todos los componentes |
@@ -175,6 +190,16 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Pablo · base, diseño y cuenta (`lib/core/db`, `lib/core/tema`, `lib/core/componentes`, `lib/features/cuenta`)
+
+* **2026-11-18 · ENT-41, ENT-42 y ENT-43 · Pablo · PR de ENT-72**
+  Qué: inicio de sesión, crear cuenta y recuperar contraseña con Supabase Auth (usa
+  `ClienteSupabase` de Ángel); la app abre en `/entrar` sin sesión y entra sin red si ya había
+  sesión; aviso de privacidad dentro de la app y casilla obligatoria al registrarse; Perfil →
+  "Cuenta y privacidad" con correo, plan y cerrar sesión (avisa si hay cambios sin subir).
+  `usuarioActualIdProvider` ya devuelve el usuario que inició sesión.
+  Para el siguiente: en debug usa "Entrar como demo". Para cuentas reales corre con
+  `flutter run --dart-define-from-file=.env` y apaga "Confirm email" en Supabase → Authentication.
+  Toqué una línea de Perfil (Axel): la fila "Cuenta y privacidad".
 
 * **2026-11-11 · ENT-24 · Pablo · bitácora**
   Qué: se crea esta bitácora y la regla en AGENTS.md y CLAUDE.md para mantenerla al día.
