@@ -1,13 +1,15 @@
 # features/nube
 
-Dueño: Ángel. Historias: ENT-13 (proyecto Supabase), ENT-44 (sincronización) y ENT-54 (indicador y
-botón "Sincronizar ahora").
+Dueño: Ángel. Historias: ENT-13 (proyecto Supabase), ENT-44 y ENT-53 (sincronización) y ENT-54
+(indicador y botón "Sincronizar ahora").
 
 ## Qué hay aquí
 
 | Archivo | Qué hace |
 | --- | --- |
 | `cliente_supabase.dart` | `ClienteSupabase.iniciar()` (se llama en `main.dart`) y `ClienteSupabase.cliente`. Lee las llaves del archivo `.env`. |
+| `indicador_sync.dart` | ENT-54: `IconoSincronizacion` (icono pequeño: sincronizado, pendiente con número, sincronizando o error), `pendientesSyncProvider` y los textos del estado y de la última sincronización. Úsalo donde quieras mostrar el estado del respaldo. |
+| `pantalla_respaldo.dart` | ENT-54: Perfil → Ajustes → Respaldo en la nube. Estado, fecha y hora de la última sincronización y "Sincronizar ahora" (sube y baja). |
 | `pantalla_nube_prueba.dart` | Solo modo de prueba: iniciar sesión con el demo, ver el estado y sincronizar a mano. Perfil → Modo de prueba → Nube y sincronización. |
 
 ## Configurar las llaves (cada quien en su compu)

@@ -12,6 +12,7 @@ import 'features/calendario/pantalla_calendario.dart';
 import 'features/entrenamiento/bitacora/pantalla_ejercicio.dart';
 import 'features/entrenamiento/pantalla_hoy.dart';
 import 'features/nube/pantalla_nube_prueba.dart';
+import 'features/nube/pantalla_respaldo.dart';
 import 'features/nutricion/pantalla_comidas.dart';
 import 'features/perfil/catalogo/pantalla_catalogo.dart';
 import 'features/perfil/pantalla_editar_perfil.dart';
@@ -130,6 +131,12 @@ final GoRouter rutas = GoRouter(
                   parentNavigatorKey: navegadorRaiz,
                   builder: (context, state) => const GaleriaComponentes(),
                 ),
+              // Respaldo en la nube: estado y "Sincronizar ahora" (ENT-54).
+              GoRoute(
+                path: 'respaldo',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) => const PantallaRespaldo(),
+              ),
               // Solo en modo de prueba: sesión del demo en Supabase y sincronizar
               // a mano (ENT-44).
               if (kDebugMode)
