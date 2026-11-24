@@ -50,9 +50,13 @@ llave el archivo es ruido.
 Pasos (app en modo debug en el emulador, en PowerShell desde la carpeta del proyecto):
 
 ```powershell
-adb exec-out run-as mx.entrenando.app cat databases/entren_ando.db > entren_ando.db
-Format-Hex entren_ando.db -Count 16
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb shell "run-as mx.entrenando.app cat databases/entren_ando.db > /sdcard/Download/entren_ando.db"
+& $adb pull /sdcard/Download/entren_ando.db
+[System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes("$PWD\entren_ando.db")[0..15])
 ```
+
+(No se usa `adb exec-out ... > archivo` porque PowerShell cambia los bytes al redirigir.)
 
 1. Una base SQLite normal empieza con el texto `SQLite format 3`. La cifrada empieza con bytes al azar.
    Captura: `capturas/01_cabecera.png`.
