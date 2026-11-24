@@ -192,6 +192,11 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Ángel · nube, red, sincronización y comidas (`supabase/`, `lib/core/conectividad`, `lib/core/sync`, `lib/features/nube`, `lib/features/nutricion`)
 
+* **2026-11-23 · ENT-56 · Ángel · PR #22**
+  Qué: `docs/reportes/sprint3.md`, corte al 23 de noviembre (día 1): estado y puntos de cada historia
+  (28 comprometidos, 7 en revisión) e impedimentos.
+  Para el siguiente: al cierre del sprint se completan puntos terminados, burndown y retrospectiva.
+
 * **2026-11-18 · ENT-44 · Ángel · PR #11**
   Qué: `MotorSync` sube lo pendiente a Supabase (upsert por id, lotes de 100, orden de llaves
   foráneas) al abrir la app, al volver la red y al iniciar sesión. Cliente de Supabase con `.env` y
