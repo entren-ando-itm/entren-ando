@@ -200,6 +200,15 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Ángel · nube, red, sincronización y comidas (`supabase/`, `lib/core/conectividad`, `lib/core/sync`, `lib/features/nube`, `lib/features/nutricion`)
 
+* **2026-11-23 · ENT-55 · Ángel · PR #21**
+  * Qué cambió: `docs/pruebas/cifrado_y_sync.md` con las 6 pruebas de cifrado y sincronización y su
+    evidencia. Las pruebas 2 a 6 pasan en el simulador `docs/pruebas/simulador/` (PostgreSQL 16 que imita
+    Supabase con nuestro esquema, RLS y los ajustes de ENT-44 y ENT-53). Faltan las capturas del
+    emulador (prueba 1 de cifrado y prueba 2 en modo avión).
+  * Qué debe saber el siguiente: para probar cambios del servidor sin tocar el Supabase del equipo,
+    corre `bash nube_limpia.sh` y `python3 pruebas55.py` (Linux o WSL). Los scripts leen las tablas de
+    `motor_sync.dart`, así que si agregas una tabla allí también entra en la prueba.
+
 * **2026-11-23 · ENT-53 · Ángel · PR #19**
   Qué: bajar cambios de la nube (gana el `actualizado_en` más reciente), celular nuevo baja todo,
   sincronización cada 15 minutos en segundo plano (`workmanager`) y trigger de 30 días en Supabase
