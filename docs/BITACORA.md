@@ -189,6 +189,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
 | `diaDeHoyProvider` (`DiaDeHoy`, `EjercicioDelDia`) | `lib/features/entrenamiento/hoy_repositorio.dart` | Rutina de hoy con alias, descanso y avance; también los días que vienen |
 | `TemporizadorFlotante`, `temporizadorProvider` | `lib/features/entrenamiento/temporizador/` | Descanso o trabajo con hora de fin (lo usa ENT-49) |
+| `mesCalendarioProvider`, `detalleDiaProvider`, `colorearMes` | `lib/features/calendario/` | Colores del mes y detalle de un día (lo usan ENT-70 y ENT-71) |
 | `BitacoraRepositorio`, `ejercicioBitacoraProvider`, `sesionDeHoyProvider` | `lib/features/entrenamiento/bitacora/` | Series de hoy de un ejercicio (guardar, quitar y precarga), terminar ejercicio, estado y comentario de la sesión; ruta `/hoy/ejercicio/:idProgramado` |
 | Rutas `/perfil/catalogo`, `/perfil/editar`, `/perfil/mediciones`, `/perfil/equipo` | `lib/app.dart` | Abrir esas pantallas con `context.push(...)` |
 | `rutinasRepositorioProvider`, `RutinasRepositorio.consultaCicloParaHoy` y `consultaEjerciciosDelDia` | `lib/features/rutinas/rutinas_repositorio.dart` | Ciclos, días y ejercicios programados; el ciclo que usa Hoy (lo necesita ENT-58 para guardar la rutina de la IA) |
@@ -346,6 +347,18 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Para el siguiente: usa `CatalogoRepositorio.nombreVisible` y `joinAlias` para mostrar nombres.
 
 ### Paola · entrenamiento del día y calendario (`lib/features/entrenamiento`, `lib/features/calendario`)
+
+* **2026-11-25 · ENT-60 (ENT-106, ENT-107, ENT-108) · Paola · PR #(pendiente)**
+  Qué: pestaña Calendario con el mes completo (`04_calendario.png`): verde, naranja, azul y gris; hoy
+  en tinta y los días que vienen sin color. Flechas para cambiar de mes ("Volver a hoy") y hoja al
+  tocar un día con ejercicios, series y comentario. En debug muestra cuánto tardó en cargar el mes.
+  Por qué / decisión: una sola consulta de sesiones por mes con `idx_sesion_calendario`, más la
+  plantilla del ciclo activo y la fecha de registro; los colores se calculan en memoria con la
+  función pura `colorearMes` (pruebas en `test/calendario_test.dart`). Sin sesión: azul si la
+  plantilla dice descanso o el día no está en la rutina, gris si tocaba entrenar. Antes del registro
+  no hay color (con los datos demo cuenta desde la sesión más antigua).
+  Para el siguiente: ENT-70 agrega en la hoja del día el cambio de lo que pasó (override de 30 días)
+  e invalida `mesCalendarioProvider`. Se quitó `ultimosDiasProvider` (nadie más lo usaba).
 
 * **2026-11-17 · ENT-50 (ENT-90) · Paola · PR #(pendiente)**
   Qué: botón "Terminar ejercicio" en la pantalla del ejercicio (marca `registro_ejercicio.completado`
