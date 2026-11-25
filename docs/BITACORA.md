@@ -147,6 +147,9 @@ Problemas que ya le pasaron a alguien, con su solución.
   Manager.
 * **Error de compileSdk:** el proyecto usa `compileSdk = 37` y
   `android.suppressUnsupportedCompileSdk=37` en `android/gradle.properties`. No los cambies.
+* **Después de `flutter upgrade` falla Gradle ("JVM 17 or later" o "Android Gradle Plugin version ... is lower"):**
+  usa el Java de Android Studio con `flutter config --jdk-dir "C:\Program Files\Android\Android Studio\jbr"`,
+  reabre Git Bash y corre `flutter clean`. El proyecto usa Android Gradle Plugin 9.1.1 y Gradle 9.5.0 (PR #13, ENT-22).
 * **La app no sincroniza (sale "Nube apagada"):** falta `entren_ando/.env` o correr con
   `flutter run --dart-define-from-file=.env`. Copia `.env.example` y llénalo (ver
   `lib/features/nube/LEEME.md`).
@@ -191,6 +194,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `rutinasRepositorioProvider`, `RutinasRepositorio.consultaCicloParaHoy` y `consultaEjerciciosDelDia` | `lib/features/rutinas/rutinas_repositorio.dart` | Ciclos, días y ejercicios programados; el ciclo que usa Hoy (lo necesita ENT-58 para guardar la rutina de la IA) |
 | Rutas `/perfil/ciclos`, `/perfil/ciclos/:idCiclo` y `/perfil/ciclos/:idCiclo/dia/:idDia` | `lib/app.dart` | Abrir Mis ciclos, un ciclo o el editor de un día |
 | `alternativasRepositorioProvider` y `AlternativasRepositorio.consultaAlternativas` | `lib/features/rutinas/alternativas/alternativas_repositorio.dart` | Alternativas de un ejercicio por prioridad, con alias (para cambiar de ejercicio en la sesión, RF-04) |
+| Edge Function `generar-rutina` (`logica.ts`: `MENSAJES`, `ErrorRutina`, `extraerJson`) | `supabase/functions/generar-rutina/` | Rutina semanal con IA; el patrón (JWT, `solicitud_ia` con llave de servicio, errores en español) sirve para ENT-65 y ENT-68 |
 | `RutinasRepositorio.crearCicloCompleto` (`DiaNuevo`, `EjercicioNuevo`) | `lib/features/rutinas/rutinas_repositorio.dart` | Crear un ciclo con sus 7 días, ejercicios y alternativas en una transacción, con el límite RN-01 |
 | `servicioRutinaIaProvider` (`ServicioRutinaIa`) | `lib/features/ia/rutina/rutina_ia_repositorio.dart` | Llamar a una Edge Function con la sesión, espera de 30 s y error en español (patrón para ENT-65 y ENT-68) |
 
@@ -202,7 +206,7 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Pablo · base, diseño y cuenta (`lib/core/db`, `lib/core/tema`, `lib/core/componentes`, `lib/features/cuenta`)
 
-* **2026-11-18 · ENT-41, ENT-42 y ENT-43 · Pablo · PR de ENT-72**
+* **2026-11-18 · ENT-41, ENT-42 y ENT-43 · Pablo · PR #18**
   Qué: inicio de sesión, crear cuenta y recuperar contraseña con Supabase Auth (usa
   `ClienteSupabase` de Ángel); la app abre en `/entrar` sin sesión y entra sin red si ya había
   sesión; aviso de privacidad dentro de la app y casilla obligatoria al registrarse; Perfil →
@@ -211,6 +215,11 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Para el siguiente: en debug usa "Entrar como demo". Para cuentas reales corre con
   `flutter run --dart-define-from-file=.env` y apaga "Confirm email" en Supabase → Authentication.
   Toqué una línea de Perfil (Axel): la fila "Cuenta y privacidad".
+
+* **2026-11-17 · ENT-22 · Pablo · PR #13**
+  Qué: Android Gradle Plugin 9.1.0 → 9.1.1 y Gradle 9.3.1 → 9.5.0, porque el Flutter nuevo pide
+  mínimo AGP 9.1.1 y ya no compilaba.
+  Para el siguiente: después de `flutter upgrade`, revisa la trampa de Gradle en "Trampas conocidas".
 
 * **2026-11-11 · ENT-24 · Pablo · bitácora**
   Qué: se crea esta bitácora y la regla en AGENTS.md y CLAUDE.md para mantenerla al día.
@@ -227,6 +236,20 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Por qué: que cada quien pueda trabajar su módulo sin esperar a los demás.
 
 ### Ángel · nube, red, sincronización y comidas (`supabase/`, `lib/core/conectividad`, `lib/core/sync`, `lib/features/nube`, `lib/features/nutricion`)
+
+* **2026-11-23 · ENT-56 · Ángel · PR #22**
+  Qué: `docs/reportes/sprint3.md`, corte al 23 de noviembre (día 1): estado y puntos de cada historia
+  (28 comprometidos, 7 en revisión) e impedimentos.
+  Para el siguiente: al cierre del sprint se completan puntos terminados, burndown y retrospectiva.
+
+* **2026-11-23 · ENT-55 · Ángel · PR #21**
+  * Qué cambió: `docs/pruebas/cifrado_y_sync.md` con las 6 pruebas de cifrado y sincronización y su
+    evidencia. Las pruebas 2 a 6 pasan en el simulador `docs/pruebas/simulador/` (PostgreSQL 16 que imita
+    Supabase con nuestro esquema, RLS y los ajustes de ENT-44 y ENT-53). Faltan las capturas del
+    emulador (prueba 1 de cifrado y prueba 2 en modo avión).
+  * Qué debe saber el siguiente: para probar cambios del servidor sin tocar el Supabase del equipo,
+    corre `bash nube_limpia.sh` y `python3 pruebas55.py` (Linux o WSL). Los scripts leen las tablas de
+    `motor_sync.dart`, así que si agregas una tabla allí también entra en la prueba.
 
 * **2026-11-23 · ENT-54 · Ángel · PR #20**
   Qué: Perfil → Ajustes → "Respaldo en la nube" con `IconoSincronizacion` (sincronizado, pendiente con
@@ -297,6 +320,16 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Para el siguiente: necesita la sesión real de Supabase (no el demo sin `DEMO_PASSWORD`) y la
   función publicada; sin eso muestra un error claro y ofrece crear la rutina a mano.
 
+* **2026-11-24 · ENT-57 (ENT-100, ENT-101) · Axel · PR #23**
+  Qué: Edge Function `supabase/functions/generar-rutina`: valida el JWT, pide a Gemini Flash una
+  semana en JSON con esquema, valida los ids contra la tabla `ejercicio` y registra `solicitud_ia`
+  (`pendiente` → `completada` o `fallida`). Errores en español (sesión, perfil, cuota, sin respuesta).
+  Por qué / decisión: si la IA inventa ids se reintenta una vez y luego se descartan; 13 s por intento
+  para caber en los 30 s de la app. El modelo se cambia con el secreto `GEMINI_MODELO`.
+  Para el siguiente: falta publicarla y poner `GEMINI_API_KEY` (pasos en su `LEEME.md`). ENT-58 la
+  llama con `functions.invoke('generar-rutina')` y guarda el ciclo con el `id_solicitud`.
+
+* **2026-11-17 · ENT-48 (ENT-86) · Axel · PR #17**
   Qué: alternativas por ejercicio programado (Editor del día → tocar ejercicio → Alternativas):
   hasta 3 del catálogo con prioridad 1 a 3, sin repetir ni usar el mismo ejercicio. El selector
   muestra por defecto el mismo grupo muscular. Subir, bajar y quitar renumeran la prioridad.
