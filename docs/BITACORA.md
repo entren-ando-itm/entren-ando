@@ -191,6 +191,8 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `rutinasRepositorioProvider`, `RutinasRepositorio.consultaCicloParaHoy` y `consultaEjerciciosDelDia` | `lib/features/rutinas/rutinas_repositorio.dart` | Ciclos, días y ejercicios programados; el ciclo que usa Hoy (lo necesita ENT-58 para guardar la rutina de la IA) |
 | Rutas `/perfil/ciclos`, `/perfil/ciclos/:idCiclo` y `/perfil/ciclos/:idCiclo/dia/:idDia` | `lib/app.dart` | Abrir Mis ciclos, un ciclo o el editor de un día |
 | `alternativasRepositorioProvider` y `AlternativasRepositorio.consultaAlternativas` | `lib/features/rutinas/alternativas/alternativas_repositorio.dart` | Alternativas de un ejercicio por prioridad, con alias (para cambiar de ejercicio en la sesión, RF-04) |
+| `RutinasRepositorio.crearCicloCompleto` (`DiaNuevo`, `EjercicioNuevo`) | `lib/features/rutinas/rutinas_repositorio.dart` | Crear un ciclo con sus 7 días, ejercicios y alternativas en una transacción, con el límite RN-01 |
+| `servicioRutinaIaProvider` (`ServicioRutinaIa`) | `lib/features/ia/rutina/rutina_ia_repositorio.dart` | Llamar a una Edge Function con la sesión, espera de 30 s y error en español (patrón para ENT-65 y ENT-68) |
 
 ---
 
@@ -285,7 +287,16 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Axel · perfil, catálogo, rutinas e IA (`lib/features/perfil`, `lib/features/rutinas`, `lib/features/ia`)
 
-* **2026-11-17 · ENT-48 (ENT-86) · Axel · PR #17**
+* **2026-11-24 · ENT-58 (ENT-102, ENT-103) · Axel · PR #(pendiente)**
+  Qué: Mis ciclos → "Generar con IA" (con `BotonConRed`): llama a `generar-rutina` (ENT-57) con el
+  perfil, la última medición, el equipo y el catálogo (peso corporal + equipo del usuario, solo id y
+  nombre oficial). La propuesta se edita en memoria (días, ejercicios, series, reps, peso, descanso)
+  y solo se guarda al tocar "Guardar rutina", con RN-01 (archivar el ciclo activo o ver Premium).
+  Por qué / decisión: se guarda con `RutinasRepositorio.crearCicloCompleto` en una sola transacción
+  y crea la `solicitud_ia` local con el mismo id de la nube (decisión 13). Espera máxima de 30 s.
+  Para el siguiente: necesita la sesión real de Supabase (no el demo sin `DEMO_PASSWORD`) y la
+  función publicada; sin eso muestra un error claro y ofrece crear la rutina a mano.
+
   Qué: alternativas por ejercicio programado (Editor del día → tocar ejercicio → Alternativas):
   hasta 3 del catálogo con prioridad 1 a 3, sin repetir ni usar el mismo ejercicio. El selector
   muestra por defecto el mismo grupo muscular. Subir, bajar y quitar renumeran la prioridad.

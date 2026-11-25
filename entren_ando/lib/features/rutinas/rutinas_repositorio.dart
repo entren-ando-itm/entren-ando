@@ -112,6 +112,44 @@ class LimiteCiclos {
   bool get puedeActivarOtro => maximo == null || activos < maximo!;
 }
 
+/// Un ejercicio para un ciclo nuevo completo (por ejemplo, el que propone la IA).
+class EjercicioNuevo {
+  const EjercicioNuevo({
+    required this.idEjercicio,
+    required this.series,
+    required this.repeticiones,
+    required this.descansoSeg,
+    this.pesoKg,
+    this.trabajoSeg,
+    this.alternativas = const [],
+  });
+
+  final int idEjercicio;
+  final int series;
+  final int repeticiones;
+  final double? pesoKg;
+  final int descansoSeg;
+  final int? trabajoSeg;
+
+  /// id de hasta 3 alternativas, en orden de prioridad (ENT-48).
+  final List<int> alternativas;
+}
+
+/// Un día para un ciclo nuevo completo.
+class DiaNuevo {
+  const DiaNuevo({
+    required this.diaSemana,
+    required this.nombre,
+    required this.esDescanso,
+    this.ejercicios = const [],
+  });
+
+  final int diaSemana;
+  final String nombre;
+  final bool esDescanso;
+  final List<EjercicioNuevo> ejercicios;
+}
+
 /// Se lanza al activar un ciclo cuando el plan ya no permite otro (RN-01).
 class LimiteCiclosAlcanzado implements Exception {
   const LimiteCiclosAlcanzado(this.limite);
@@ -280,6 +318,108 @@ class RutinasRepositorio {
           'nombre': 'Descanso',
           'es_descanso': 1,
         });
+      }
+      return idCiclo;
+    });
+  }
+
+  /// Crea un ciclo activo con sus 7 días, ejercicios y alternativas en UNA
+  /// transacción (ENT-58: guardar la rutina de la IA).
+  ///
+  /// * Archiva antes los ciclos de [archivarAntes] y luego revisa el límite
+  ///   del plan: si no cabe, lanza [LimiteCiclosAlcanzado] y no guarda nada.
+  /// * Con [idSolicitud] (origen 'ia'), crea también la fila local de
+  ///   `solicitud_ia` con el MISMO id que la nube (decisión 13 de la bitácora).
+  /// * Faltan días → se guardan como descanso. Alternativas repetidas, iguales
+  ///   al ejercicio o de más de 3 se ignoran.
+  Future<String> crearCicloCompleto({
+    required String nombre,
+    required String fechaInicio,
+    String? fechaFin,
+    required List<DiaNuevo> dias,
+    String origen = 'manual',
+    String? idSolicitud,
+    List<String> archivarAntes = const [],
+  }) async {
+    final error = ValidarRutina.nombre(nombre) ?? ValidarRutina.fechas(fechaInicio, fechaFin);
+    if (error != null) throw ArgumentError(error);
+
+    return _bd.transaction((txn) async {
+      final escritura = EscrituraLocal(txn);
+      for (final otro in archivarAntes) {
+        await escritura.actualizar(
+          'ciclo_rutina',
+          {'estado': 'archivado'},
+          where: 'id_ciclo = ? AND id_usuario = ? AND eliminado = 0',
+          whereArgs: [otro, _idUsuario],
+        );
+      }
+      final limite = await _limite(txn);
+      if (!limite.puedeActivarOtro) throw LimiteCiclosAlcanzado(limite);
+
+      if (idSolicitud != null) {
+        final existe = await txn.rawQuery(
+          'SELECT 1 FROM solicitud_ia WHERE id_solicitud = ?',
+          [idSolicitud],
+        );
+        if (existe.isEmpty) {
+          await escritura.insertar('solicitud_ia', {
+            'id_solicitud': idSolicitud,
+            'id_usuario': _idUsuario,
+            'tipo': 'rutina',
+            'estado': 'completada',
+          });
+        }
+      }
+
+      final idCiclo = (await escritura.insertar('ciclo_rutina', {
+        'id_usuario': _idUsuario,
+        'id_solicitud': idSolicitud,
+        'nombre': nombre.trim(),
+        'fecha_inicio': fechaInicio,
+        'fecha_fin': fechaFin,
+        'estado': 'activo',
+        'origen': origen,
+      }))!;
+
+      final porDia = {for (final d in dias) d.diaSemana: d};
+      for (var numero = 1; numero <= 7; numero++) {
+        final dia = porDia[numero];
+        final ejercicios = dia?.esDescanso == false ? dia!.ejercicios : const <EjercicioNuevo>[];
+        final esDescanso = ejercicios.isEmpty;
+        final nombreDia = esDescanso
+            ? 'Descanso'
+            : (ValidarRutina.nombre(dia!.nombre) == null ? dia.nombre.trim() : 'Entrenamiento');
+        final idDia = (await escritura.insertar('dia_rutina', {
+          'id_ciclo': idCiclo,
+          'dia_semana': numero,
+          'nombre': nombreDia,
+          'es_descanso': esDescanso ? 1 : 0,
+        }))!;
+        for (var orden = 0; orden < ejercicios.length; orden++) {
+          final e = ejercicios[orden];
+          final idProgramado = (await escritura.insertar('ejercicio_programado', {
+            'id_dia': idDia,
+            'id_ejercicio': e.idEjercicio,
+            'orden': orden,
+            'series_objetivo': e.series,
+            'reps_objetivo': e.repeticiones,
+            'peso_objetivo_kg': e.pesoKg,
+            'descanso_seg': e.descansoSeg,
+            'trabajo_seg': e.trabajoSeg,
+          }))!;
+          final alternativas = <int>[];
+          for (final a in e.alternativas) {
+            if (a != e.idEjercicio && !alternativas.contains(a) && alternativas.length < 3) alternativas.add(a);
+          }
+          for (var i = 0; i < alternativas.length; i++) {
+            await escritura.insertar('alternativa_ejercicio', {
+              'id_programado': idProgramado,
+              'id_ejercicio': alternativas[i],
+              'prioridad': i + 1,
+            });
+          }
+        }
       }
       return idCiclo;
     });
