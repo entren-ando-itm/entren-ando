@@ -27,8 +27,11 @@ class ClienteSupabase {
   /// El cliente, o null si no está configurado.
   static SupabaseClient? get cliente => _listo ? Supabase.instance.client : null;
 
-  /// Se llama una vez en `main.dart`, antes de `runApp`.
-  static Future<void> iniciar() async {
+  /// Se llama una vez en `main.dart`, antes de `runApp`. La sincronización en
+  /// segundo plano (ENT-97) la llama con [segundoPlano] = true porque corre en
+  /// otro isolate, sin pantallas ni enlaces que abrir.
+  static Future<void> iniciar({bool segundoPlano = false}) async {
+    if (_listo) return;
     if (_url.isEmpty || _llavePublica.isEmpty) {
       debugPrint(
         'Entren-Ando: faltan SUPABASE_URL y SUPABASE_ANON_KEY; la sincronización '
@@ -37,7 +40,11 @@ class ClienteSupabase {
       return;
     }
     try {
-      await Supabase.initialize(url: _url, anonKey: _llavePublica);
+      await Supabase.initialize(
+        url: _url,
+        anonKey: _llavePublica,
+        authOptions: FlutterAuthClientOptions(detectSessionInUri: !segundoPlano),
+      );
       _listo = true;
     } catch (e) {
       debugPrint('Entren-Ando: no se pudo iniciar Supabase: $e');

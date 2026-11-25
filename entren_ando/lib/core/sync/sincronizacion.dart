@@ -8,6 +8,7 @@ import '../../features/nube/cliente_supabase.dart';
 import '../conectividad/conectividad.dart';
 import '../db/base_datos.dart';
 import '../db/usuario_actual.dart';
+import 'marcas_sync.dart';
 import 'motor_sync.dart';
 
 enum FaseSync {
@@ -36,6 +37,8 @@ class EstadoSync {
     this.ultimaVez,
     this.subidas = 0,
     this.rechazadas = 0,
+    this.descartadas = 0,
+    this.bajadas = 0,
   });
 
   final FaseSync fase;
@@ -47,11 +50,26 @@ class EstadoSync {
   /// Filas subidas y rechazadas en la última sincronización.
   final int subidas;
   final int rechazadas;
+
+  /// Cambios a días de más de 30 días que la nube rechazó (RF-10) y filas que
+  /// llegaron de la nube, en la última sincronización (ENT-53).
+  final int descartadas;
+  final int bajadas;
+
+  EstadoSync _conUltimaVez(DateTime? cuando) => EstadoSync(
+        fase: fase,
+        mensaje: mensaje,
+        ultimaVez: cuando,
+        subidas: subidas,
+        rechazadas: rechazadas,
+        descartadas: descartadas,
+        bajadas: bajadas,
+      );
 }
 
-/// Sincronización automática (ENT-44, subtarea ENT-80).
+/// Sincronización automática (ENT-44 y ENT-53).
 ///
-/// Sube los pendientes:
+/// Sube los pendientes y baja lo nuevo de la nube:
 /// * al abrir la app,
 /// * cuando `hayRedProvider` pasa de false a true (volvió la red),
 /// * cuando el usuario inicia sesión en Supabase,
@@ -92,8 +110,16 @@ class Sincronizacion extends Notifier<EstadoSync> {
       _sesion?.cancel();
     });
 
-    // Al abrir la app.
-    Future.microtask(sincronizar);
+    // Al abrir la app: primero la hora de la última sincronización guardada
+    // (aunque no haya red) y luego se sincroniza.
+    Future.microtask(() async {
+      final idUsuario = ref.read(usuarioActualIdProvider);
+      if (idUsuario != null) {
+        final ultima = (await MarcasSync.abrir()).ultimaSincronizacion(idUsuario);
+        if (_activo && ultima != null && state.ultimaVez == null) state = state._conUltimaVez(ultima);
+      }
+      await sincronizar();
+    });
     return const EstadoSync(fase: FaseSync.subiendo);
   }
 
@@ -129,16 +155,23 @@ class Sincronizacion extends Notifier<EstadoSync> {
     _poner(EstadoSync(fase: FaseSync.subiendo, ultimaVez: state.ultimaVez));
     try {
       final bd = await ref.read(baseDatosProvider.future);
-      final resultado = await MotorSync(bd, cliente).subirPendientes(idUsuario, todo: todo);
+      final motor = MotorSync(bd, cliente);
+      final marcas = await MarcasSync.abrir();
+      final resultado = todo
+          ? (await motor.subirPendientes(idUsuario, todo: true))
+              .conBajadas(await motor.bajarCambios(idUsuario, marcas), const [])
+          : await motor.sincronizar(idUsuario, marcas);
+      if (todo) await marcas.guardarSincronizacion(idUsuario, DateTime.now());
+      // Llegaron datos de la nube: las pantallas los vuelven a leer.
+      if (resultado.bajadas > 0 || resultado.descartadas > 0) ref.invalidate(baseDatosProvider);
       _poner(EstadoSync(
         fase: FaseSync.lista,
-        ultimaVez: DateTime.now(),
+        ultimaVez: marcas.ultimaSincronizacion(idUsuario) ?? DateTime.now(),
         subidas: resultado.subidas,
         rechazadas: resultado.rechazadas,
-        mensaje: resultado.rechazadas == 0
-            ? null
-            : 'Supabase rechazó ${resultado.rechazadas} '
-                '${resultado.rechazadas == 1 ? 'fila' : 'filas'}: ${resultado.errores.first}',
+        descartadas: resultado.descartadas,
+        bajadas: resultado.bajadas,
+        mensaje: _mensaje(resultado),
       ));
     } catch (e) {
       debugPrint('Entren-Ando sync: $e');
@@ -156,8 +189,20 @@ class Sincronizacion extends Notifier<EstadoSync> {
     }
   }
 
+  static String? _mensaje(ResultadoSync r) {
+    final partes = [
+      if (r.rechazadas > 0)
+        'Supabase rechazó ${r.rechazadas} ${r.rechazadas == 1 ? 'fila' : 'filas'}: ${r.errores.first}',
+      if (r.descartadas > 0)
+        '${r.descartadas} ${r.descartadas == 1 ? 'cambio' : 'cambios'} a días de más de 30 días '
+            'no se guardaron (RF-10); se quedó la versión de la nube.',
+    ];
+    return partes.isEmpty ? null : partes.join('\n');
+  }
+
+  /// Cambia el estado sin perder la hora de la última sincronización.
   void _poner(EstadoSync nuevo) {
-    if (_activo) state = nuevo;
+    if (_activo) state = nuevo.ultimaVez == null ? nuevo._conUltimaVez(state.ultimaVez) : nuevo;
   }
 }
 
