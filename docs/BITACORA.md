@@ -287,7 +287,7 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Axel · perfil, catálogo, rutinas e IA (`lib/features/perfil`, `lib/features/rutinas`, `lib/features/ia`)
 
-* **2026-11-24 · ENT-58 (ENT-102, ENT-103) · Axel · PR #(pendiente)**
+* **2026-11-24 · ENT-58 (ENT-102, ENT-103) · Axel · PR #24**
   Qué: Mis ciclos → "Generar con IA" (con `BotonConRed`): llama a `generar-rutina` (ENT-57) con el
   perfil, la última medición, el equipo y el catálogo (peso corporal + equipo del usuario, solo id y
   nombre oficial). La propuesta se edita en memoria (días, ejercicios, series, reps, peso, descanso)
