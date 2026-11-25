@@ -78,6 +78,58 @@ void main() {
     }
   });
 
+  test('Se bajan todas las tablas del usuario, incluidas las que crea el servidor', () {
+    final todas = llavesForaneas().keys.toSet();
+    final bajadas = MotorSync.tablasBajar.map((t) => t.nombre).toSet();
+    expect(bajadas, todas.difference(catalogos));
+    expect(MotorSync.tablasBajar.length, bajadas.length, reason: 'sin tablas repetidas');
+  });
+
+  test('Al bajar, cada tabla llega después de las tablas a las que apunta', () {
+    final foraneas = llavesForaneas();
+    final orden = MotorSync.tablasBajar.map((t) => t.nombre).toList();
+    for (final (i, tabla) in orden.indexed) {
+      for (final padre in foraneas[tabla]!) {
+        if (catalogos.contains(padre) || padre == tabla) continue;
+        expect(orden.indexOf(padre), lessThan(i), reason: '$tabla apunta a $padre');
+      }
+      final cuerpo = RegExp('CREATE TABLE $tabla \\(([\\s\\S]*?)\\n\\);').firstMatch(esquema)!.group(1)!;
+      final llaves = MotorSync.tablasBajar[i].llaves;
+      expect(cuerpo, contains('PRIMARY KEY (${llaves.join(', ')})'), reason: tabla);
+    }
+  });
+
+  test('Lo que baja de la nube pasa a 0/1, JSON a texto y llega sin pendiente', () {
+    final fila = MotorSync.aLocal(
+      {
+        'id_feedback': 'abc',
+        'leido': true,
+        'detecto_estancamiento': false,
+        'eliminado': false,
+        'pendiente_sync': false,
+        'datos': {'volumen': 1200},
+        'peso_kg': 60.5,
+        'columna_que_no_hay': 'x',
+      },
+      {'id_feedback', 'leido', 'detecto_estancamiento', 'eliminado', 'pendiente_sync', 'datos', 'peso_kg'},
+    );
+    expect(fila['leido'], 1);
+    expect(fila['detecto_estancamiento'], 0);
+    expect(fila['eliminado'], 0);
+    expect(fila['pendiente_sync'], 0);
+    expect(fila['datos'], '{"volumen":1200}');
+    expect(fila['peso_kg'], 60.5);
+    expect(fila.containsKey('columna_que_no_hay'), isFalse);
+  });
+
+  test('La regla de los 30 días usa el mismo código en la nube y en el celular', () {
+    final ajustes = File('../supabase/ajustes_ent53.sql').readAsStringSync();
+    expect(ajustes, contains("ERRCODE = '${MotorSync.codigoRegla30Dias}'"));
+    for (final tabla in ['sesion_entrenamiento', 'registro_ejercicio', 'serie']) {
+      expect(ajustes, contains('BEFORE UPDATE ON public.$tabla'), reason: tabla);
+    }
+  });
+
   test('Los 0/1 pasan a boolean y pendiente_sync va en false', () {
     const tabla = TablaSync('registro_ejercicio', ['id_registro'], booleanas: ['completado']);
     final fila = MotorSync.aNube(tabla, {

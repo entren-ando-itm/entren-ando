@@ -2,12 +2,30 @@
 
 Dueño: Ángel. Historias: ENT-44 (subir cambios) y ENT-53 (bajar cambios, conflictos y segundo plano).
 
-## Qué hay aquí (ENT-44)
+## Qué hay aquí
 
 | Archivo | Qué hace |
 | --- | --- |
-| `motor_sync.dart` | `MotorSync.subirPendientes()`: sube las filas con `pendiente_sync = 1` de cada tabla del usuario, en orden de llaves foráneas, con upsert por id en lotes de 100. Al confirmar pone `pendiente_sync = 0` (solo si la fila no cambió mientras subía). Si Supabase rechaza un lote, prueba fila por fila para que una mala no frene a las demás. |
-| `sincronizacion.dart` | `sincronizacionProvider`: corre el motor al abrir la app, cuando vuelve la red (`hayRedProvider` de false a true) y al iniciar sesión. `SincronizacionAutomatica` ya está puesta en `lib/app.dart`. |
+| `motor_sync.dart` | `MotorSync.sincronizar()`: sube y luego baja. **Subir** (`subirPendientes`, ENT-44): filas con `pendiente_sync = 1` de cada tabla del usuario, en orden de llaves foráneas, upsert por id en lotes de 100; al confirmar pone `pendiente_sync = 0`. **Bajar** (`bajarCambios`, ENT-53): por tabla, lo que cambió en la nube desde la última vez (`actualizado_en`); en conflicto gana el más reciente. |
+| `marcas_sync.dart` | `MarcasSync`: hasta dónde se bajó cada tabla y la hora de la última sincronización, en shared_preferences (por usuario). |
+| `sincronizacion.dart` | `sincronizacionProvider`: corre el motor al abrir la app, cuando vuelve la red (`hayRedProvider` de false a true) y al iniciar sesión. `SincronizacionAutomatica` ya está puesta en `lib/app.dart`. Si bajó algo, vuelve a leer la base (`ref.invalidate(baseDatosProvider)`) para que las pantallas lo muestren. |
+| `segundo_plano.dart` | ENT-97: tarea de Android (paquete `workmanager`) cada 15 minutos con red, aunque la app esté cerrada. Se programa en `main.dart`. |
+
+## Cómo baja los cambios (ENT-53)
+
+* **Gana el más reciente:** si una fila tiene un cambio pendiente en el celular y también cambió en la
+  nube, se queda el `actualizado_en` más reciente. Si gana el celular, se sube la próxima vez.
+* **Celular nuevo:** sin marcas, baja todo el respaldo del usuario (también al iniciar sesión).
+* **Revisión completa una vez al día:** un cambio que otro celular hizo sin red llega a la nube con su
+  hora vieja (anterior a la marca). Para no perderlo, cada 24 horas se revisan todas las filas; las
+  que ya están iguales no se vuelven a escribir.
+* **Regla de los 30 días (RF-10):** la nube rechaza cambiar o borrar sesiones, registros y series de
+  un día con más de 30 días (`supabase/ajustes_ent53.sql`, código `EA010`). El celular descarta su
+  cambio y se queda con la versión de la nube. Subir por primera vez un entrenamiento viejo (por
+  ejemplo, después de muchos días sin red) sí se permite: es un dato guardado en su día, no una
+  edición.
+* Lo que baja se guarda con `INSERT ... ON CONFLICT DO UPDATE`, nunca con `REPLACE` (borraría y
+  dispararía los `ON DELETE CASCADE`), y llega con `pendiente_sync = 0`.
 
 Reglas:
 
@@ -40,5 +58,12 @@ Reglas:
 1. Configura `entren_ando/.env` (ver `lib/features/nube/LEEME.md`) y corre
    `flutter run --dart-define-from-file=.env`.
 2. Perfil → Modo de prueba → Nube y sincronización → "Iniciar sesión como demo".
-3. Modo avión, registra una comida, quita el modo avión. En menos de un minuto aparece en la tabla
-   `registro_comida` de Supabase.
+3. **Subir:** modo avión, registra una comida, quita el modo avión. En menos de un minuto aparece en
+   la tabla `registro_comida` de Supabase.
+4. **Bajar:** cambia esa comida en el panel de Supabase (Table Editor) y pon `actualizado_en` en
+   `now()`. Toca "Sincronizar ahora": el cambio aparece en la pestaña Comidas.
+5. **Conflicto:** en modo avión cambia la comida en el celular; luego cámbiala en Supabase. Quita el
+   modo avión: se queda el cambio más reciente.
+6. **Segundo plano:** cierra la app con red y espera unos 15 minutos (Android decide el momento
+   exacto). Cambia algo en Supabase antes: al abrir la app sin red, el cambio ya está. En la consola
+   (`flutter logs`) sale "Entren-Ando (segundo plano): … subidas, … bajadas".

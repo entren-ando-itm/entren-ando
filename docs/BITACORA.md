@@ -95,6 +95,24 @@ Lo que ya se acordó. La IA no debe proponer lo contrario sin hablarlo en el dai
     escaneada y el feedback apuntan a una solicitud que sí existe en Supabase al sincronizar
     (ENT-44; lo usan ENT-101 de Axel y ENT-109). Las del usuario demo las crea
     `supabase/ajustes_ent44.sql`.
+14. **Sesión (ENT-41):** sin sesión la app abre en el inicio de sesión (`/entrar`); en modo debug
+    hay "Entrar como demo" para trabajar sin internet ni cuenta. La contraseña nunca se guarda en
+    el celular: la sesión la guarda `supabase_flutter`, así que después se entra sin red. Si el
+    correo o la contraseña están mal, el mensaje es el mismo en los dos casos.
+15. **Aviso de privacidad aceptado (ENT-42):** su versión y fecha van en el `user_metadata` de
+    Supabase Auth (`aviso_version`, `aviso_aceptado_en`), no en una tabla. La app trae una copia en
+    `assets/legal/aviso_privacidad.md` para leerlo sin red; si cambia el aviso, se copia de nuevo y
+    se sube `Cuenta.versionAviso` (una prueba lo revisa).
+16. **Cerrar sesión (ENT-43):** por ahora NO borra los datos del celular, porque todavía no existe
+    la bajada desde la nube (ENT-53) y el usuario vería su app vacía al volver. Si hay cambios sin
+    subir, avisa y deja subirlos antes de salir.
+17. **Regla de los 30 días en la nube (RF-10, ENT-53):** Supabase rechaza **cambiar o borrar**
+    sesiones, registros y series de un día con más de 30 días (código `EA010`); el celular se queda con
+    la versión de la nube. **Subir por primera vez** un entrenamiento viejo sí se permite: se guardó en
+    su día sin red; también deja subir los datos de prueba y bajar el respaldo a un celular nuevo.
+18. **Bajar cambios (ENT-53):** por tabla, desde la última marca (`actualizado_en`, en
+    shared_preferences); en conflicto gana el más reciente; una vez al día se revisa todo, porque un
+    cambio hecho sin red llega a la nube con su hora vieja.
 
 ---
 
@@ -112,6 +130,8 @@ Cosas detectadas que todavía no se arreglan. Quien la resuelva, la tacha (~~as�
   activo con `LIMIT 1` sin orden; con Premium puede haber varios y ENT-47 pide el de `fecha_inicio`
   más reciente. Arreglo: usar `RutinasRepositorio.consultaCicloParaHoy` (o agregar
   `ORDER BY fecha_inicio DESC, creado_en DESC`). Con el plan Gratuito no se nota.
+* **Borrar los datos al cerrar sesión (para ENT-53, Ángel / Pablo).** ENT-43 lo pide, pero se activa
+  cuando exista la bajada desde la nube (decisión 16).
 
 ---
 
@@ -149,14 +169,18 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 
 | Qué | Dónde | Para qué |
 | --- | --- | --- |
-| `baseDatosProvider`, `usuarioActualIdProvider` | `lib/core/db` | La única conexión a la base y el usuario actual (demo en debug; ENT-41 lo cambia por el de la sesión) |
+| `baseDatosProvider`, `usuarioActualIdProvider` | `lib/core/db` | La única conexión a la base y el usuario que inició sesión (null si nadie ha entrado) |
+| `sesionActualProvider` (correo y si es el demo) y `Cuenta.cerrarSesion()` | `lib/core/db/usuario_actual.dart`, `lib/features/cuenta/sesion_cuenta.dart` | Quién usa la app; al cambiar la sesión, go_router manda a `/entrar` o a Hoy |
+| Rutas `/entrar`, `/registro`, `/aviso` y `/perfil/cuenta` | `lib/app.dart` | Inicio de sesión, crear cuenta, aviso de privacidad y Cuenta (cerrar sesión) |
 | `EscrituraLocal` (`insertar`, `actualizar`, `marcarEliminado`) | `lib/core/db/escritura_local.dart` | Toda escritura: llena fechas, UUID y `pendiente_sync` |
 | `Fechas.hoy()`, `Fechas.ahoraIso()`, `Fechas.hoyComoFecha()` | `lib/core/db/fechas.dart` | Fechas en hora de CDMX |
 | `import 'package:entren_ando/core/diseno.dart'` | `lib/core/tema`, `lib/core/componentes` | Tema, medidas y todos los componentes |
 | `hayRedProvider` y `ref.read(hayRedProvider.notifier).revisar()` | `lib/core/conectividad/conectividad.dart` | Saber si hay internet de verdad y reaccionar cuando vuelve la red (ENT-44) |
 | `BotonConRed` | `lib/core/conectividad/boton_con_red.dart` | Botones que necesitan internet |
 | `ClienteSupabase.cliente` | `lib/features/nube/cliente_supabase.dart` | El cliente de Supabase (null si no hay `.env`). ENT-41 inicia sesión con él |
-| `sincronizacionProvider` y `.notifier.sincronizar()` | `lib/core/sync/sincronizacion.dart` | Estado de la sincronización y subir ya (ENT-54) |
+| `sincronizacionProvider` y `.notifier.sincronizar()` | `lib/core/sync/sincronizacion.dart` | Estado de la sincronización (`ultimaVez`, `bajadas`, `descartadas`) y sincronizar ya: sube y baja (ENT-54) |
+| `MarcasSync` | `lib/core/sync/marcas_sync.dart` | Hora de la última sincronización por usuario (también la de segundo plano) |
+| `IconoSincronizacion` | `lib/features/nube/indicador_sync.dart` | Icono pequeño con el estado del respaldo (ENT-54) |
 | `AvisoSinRed` | ya puesto en `lib/app.dart` | No lo agregues en tus pantallas |
 | `CatalogoRepositorio.nombreVisible` y `joinAlias` | `lib/features/perfil/catalogo/catalogo_repositorio.dart` | Nombre del ejercicio con el alias del usuario (lo necesitan ENT-39 y ENT-49) |
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
@@ -175,6 +199,16 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Pablo · base, diseño y cuenta (`lib/core/db`, `lib/core/tema`, `lib/core/componentes`, `lib/features/cuenta`)
+
+* **2026-11-18 · ENT-41, ENT-42 y ENT-43 · Pablo · PR de ENT-72**
+  Qué: inicio de sesión, crear cuenta y recuperar contraseña con Supabase Auth (usa
+  `ClienteSupabase` de Ángel); la app abre en `/entrar` sin sesión y entra sin red si ya había
+  sesión; aviso de privacidad dentro de la app y casilla obligatoria al registrarse; Perfil →
+  "Cuenta y privacidad" con correo, plan y cerrar sesión (avisa si hay cambios sin subir).
+  `usuarioActualIdProvider` ya devuelve el usuario que inició sesión.
+  Para el siguiente: en debug usa "Entrar como demo". Para cuentas reales corre con
+  `flutter run --dart-define-from-file=.env` y apaga "Confirm email" en Supabase → Authentication.
+  Toqué una línea de Perfil (Axel): la fila "Cuenta y privacidad".
 
 * **2026-11-11 · ENT-24 · Pablo · bitácora**
   Qué: se crea esta bitácora y la regla en AGENTS.md y CLAUDE.md para mantenerla al día.
@@ -196,6 +230,32 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Qué: `docs/reportes/sprint3.md`, corte al 23 de noviembre (día 1): estado y puntos de cada historia
   (28 comprometidos, 7 en revisión) e impedimentos.
   Para el siguiente: al cierre del sprint se completan puntos terminados, burndown y retrospectiva.
+
+* **2026-11-23 · ENT-55 · Ángel · PR #21**
+  * Qué cambió: `docs/pruebas/cifrado_y_sync.md` con las 6 pruebas de cifrado y sincronización y su
+    evidencia. Las pruebas 2 a 6 pasan en el simulador `docs/pruebas/simulador/` (PostgreSQL 16 que imita
+    Supabase con nuestro esquema, RLS y los ajustes de ENT-44 y ENT-53). Faltan las capturas del
+    emulador (prueba 1 de cifrado y prueba 2 en modo avión).
+  * Qué debe saber el siguiente: para probar cambios del servidor sin tocar el Supabase del equipo,
+    corre `bash nube_limpia.sh` y `python3 pruebas55.py` (Linux o WSL). Los scripts leen las tablas de
+    `motor_sync.dart`, así que si agregas una tabla allí también entra en la prueba.
+
+* **2026-11-23 · ENT-54 · Ángel · PR #20**
+  Qué: Perfil → Ajustes → "Respaldo en la nube" con `IconoSincronizacion` (sincronizado, pendiente con
+  número, sincronizando o error); su pantalla muestra la última sincronización y "Sincronizar ahora".
+  Por qué / decisión: pantalla nueva armada con los componentes de Ajustes (no hay PNG); la fila va
+  antes de "Tema" para no chocar con "Cuenta y privacidad" (PR #18).
+  Para el siguiente: el icono se puede poner en otras pantallas (`IconoSincronizacion()`). Depende
+  del PR #19 (ENT-53).
+
+* **2026-11-23 · ENT-53 · Ángel · PR #19**
+  Qué: bajar cambios de la nube (gana el `actualizado_en` más reciente), celular nuevo baja todo,
+  sincronización cada 15 minutos en segundo plano (`workmanager`) y trigger de 30 días en Supabase
+  (`supabase/ajustes_ent53.sql`, código `EA010`).
+  Por qué / decisión: decisiones 17 y 18. Probado contra PostgreSQL 16 con RLS: cambio en la nube,
+  los dos lados de un conflicto, rechazo de 30 días y celular nuevo (503 de 503 filas).
+  Para el siguiente: correr `ajustes_ent53.sql` en Supabase. ENT-54 lee `EstadoSync.ultimaVez`,
+  `bajadas` y `descartadas`. Paquetes nuevos: `shared_preferences` y `workmanager`.
 
 * **2026-11-18 · ENT-44 · Ángel · PR #11**
   Qué: `MotorSync` sube lo pendiente a Supabase (upsert por id, lotes de 100, orden de llaves
