@@ -6,9 +6,14 @@ import 'package:go_router/go_router.dart';
 
 import 'core/componentes/galeria_componentes.dart';
 import 'core/conectividad/aviso_sin_red.dart';
+import 'core/db/usuario_actual.dart';
 import 'core/diseno.dart';
 import 'core/sync/sincronizacion.dart';
 import 'features/calendario/pantalla_calendario.dart';
+import 'features/cuenta/pantalla_aviso.dart';
+import 'features/cuenta/pantalla_cuenta.dart';
+import 'features/cuenta/pantalla_inicio_sesion.dart';
+import 'features/cuenta/pantalla_registro.dart';
 import 'features/entrenamiento/bitacora/pantalla_ejercicio.dart';
 import 'features/entrenamiento/pantalla_hoy.dart';
 import 'features/nube/pantalla_nube_prueba.dart';
@@ -37,10 +42,27 @@ final GlobalKey<NavigatorState> navegadorRaiz = GlobalKey<NavigatorState>(debugL
 /// Cada pestaña es una rama con su propia pila de pantallas. Para agregar una
 /// pantalla de tu módulo, agrega un GoRoute hijo dentro de la rama de tu
 /// pestaña (por ejemplo, '/hoy/bitacora').
+/// Sin sesión solo se puede estar en estas rutas (ENT-41).
+const Set<String> rutasSinSesion = {'/entrar', '/registro', '/aviso'};
+
+/// Manda al inicio de sesión si nadie ha entrado, y a Hoy al entrar.
+String? redirigirSegunSesion(SesionActual? sesion, String ubicacion) {
+  if (sesion == null) return rutasSinSesion.contains(ubicacion) ? null : '/entrar';
+  if (ubicacion == '/entrar' || ubicacion == '/registro') return '/hoy';
+  return null;
+}
+
 final GoRouter rutas = GoRouter(
   navigatorKey: navegadorRaiz,
   initialLocation: '/hoy',
+  // Vuelve a revisar la ruta cada vez que cambia la sesión (entrar o salir).
+  refreshListenable: sesionActual,
+  redirect: (context, state) => redirigirSegunSesion(sesionActual.value, state.matchedLocation),
   routes: [
+    // ENT-41 y ENT-42: cuenta, sin la barra de abajo.
+    GoRoute(path: '/entrar', builder: (context, state) => const PantallaInicioSesion()),
+    GoRoute(path: '/registro', builder: (context, state) => const PantallaRegistro()),
+    GoRoute(path: '/aviso', builder: (context, state) => const PantallaAviso()),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navegacion) => EsqueletoPestanas(navegacion: navegacion),
       branches: [
@@ -123,6 +145,12 @@ final GoRouter rutas = GoRouter(
                     ],
                   ),
                 ],
+              ),
+              // ENT-43: cuenta, aviso de privacidad y cerrar sesión (sin la barra).
+              GoRoute(
+                path: 'cuenta',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) => const PantallaCuenta(),
               ),
               // Solo en modo de prueba: galería con todos los componentes.
               if (kDebugMode)

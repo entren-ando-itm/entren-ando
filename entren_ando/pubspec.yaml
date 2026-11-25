@@ -77,6 +77,7 @@ flutter:
     - lib/core/db/esquema.sql
     - lib/core/db/catalogo_semilla.sql
     - lib/core/db/datos_prueba.sql
+    - assets/legal/aviso_privacidad.md
 
   fonts:
     - family: Barlow
