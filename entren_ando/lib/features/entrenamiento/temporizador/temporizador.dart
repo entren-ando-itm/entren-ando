@@ -192,11 +192,11 @@ class Temporizador extends Notifier<EstadoTemporizador?> {
   }
 }
 
-/// "1:30", "0:05" o "12:00" para mostrar en pantalla.
+/// "01:30", "00:05" o "12:00" para mostrar en pantalla, como el diseño.
 String formatoTiempo(Duration tiempo) {
-  // Redondea hacia arriba: con 0.4 s restantes se ve 0:01, no 0:00.
+  // Redondea hacia arriba: con 0.4 s restantes se ve 00:01, no 00:00.
   final segundos = (tiempo.inMilliseconds / 1000).ceil();
-  final minutos = segundos ~/ 60;
+  final minutos = (segundos ~/ 60).toString().padLeft(2, '0');
   final resto = (segundos % 60).toString().padLeft(2, '0');
   return '$minutos:$resto';
 }

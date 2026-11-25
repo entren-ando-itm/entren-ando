@@ -1,7 +1,32 @@
 # features/rutinas
 
-Dueño: Axel. Historias: ENT-17 (catálogo de ejercicios con alias), ENT-47 (ciclos editables con
-límite del plan gratuito) y ENT-48 (alternativas por ejercicio).
+Dueño: Axel. Historias: ENT-47 (ciclos editables con límite del plan gratuito) y ENT-48
+(alternativas por ejercicio). El catálogo con alias (ENT-17) vive en `lib/features/perfil/catalogo`.
 
-El catálogo (tablas `ejercicio` y `equipo`) es de solo lectura; el usuario solo pone alias
-en `usuario_ejercicio`. Recuerda el límite RN-01: plan gratuito con 1 ciclo activo.
+## Qué hay
+
+| Archivo | Para qué |
+| --- | --- |
+| `rutinas_repositorio.dart` | `RutinasRepositorio`: ciclos, sus 7 días y los ejercicios programados. `ValidarRutina` con las reglas de los CHECK |
+| `rutinas_proveedores.dart` | Proveedores de Riverpod, `refrescarRutinas(ref)` y `FechaCiclo` (dd/mm/aaaa ↔ ISO) |
+| `hoja_limite_ciclos.dart` | Hoja del límite RN-01: archivar un ciclo activo o ver Premium |
+| `pantalla_ciclos.dart` | Mis ciclos (activos y archivados) y la hoja para crear o editar un ciclo |
+| `pantalla_ciclo.dart` | Un ciclo con sus 7 días; archivar o reactivar |
+| `pantalla_editor_dia.dart` | Editor de un día: rutina o descanso, nombre y ejercicios del catálogo |
+| `alternativas/alternativas_repositorio.dart` | `AlternativasRepositorio`: hasta 3 alternativas por ejercicio, prioridad 1 a 3, sin repetir |
+| `alternativas/pantalla_alternativas.dart` | Pantalla de alternativas (se abre desde la hoja de un ejercicio en el editor) |
+
+## Reglas
+
+* **RN-01:** el límite de ciclos activos se lee de `plan.max_ciclos_activos` (NULL = ilimitado),
+  nunca con un `if` de plan gratuito.
+* **Los ciclos no se borran:** se archivan (`estado = 'archivado'`). Un ciclo archivado es de solo
+  lectura; el repositorio lanza `CicloSoloLectura` si se intenta editar.
+* Cada ciclo tiene exactamente 7 días (`dia_rutina`, único por ciclo y día de la semana). Se crean
+  todos como descanso.
+* Quitar un ejercicio marca `eliminado = 1` en él y en sus alternativas, y renumera `orden`.
+* El nombre de cada ejercicio usa `CatalogoRepositorio.nombreVisible` (alias); a la IA se manda
+  `id_ejercicio` y `nombre_oficial`.
+* Hoy debe usar `RutinasRepositorio.consultaCicloParaHoy` (el activo con `fecha_inicio` más reciente).
+* **Alternativas (ENT-48):** máximo 3 por ejercicio, sin repetir ni usar el mismo ejercicio; la
+  prioridad siempre queda 1, 2, 3 al mover o quitar. El selector propone el mismo grupo muscular.

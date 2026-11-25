@@ -90,6 +90,11 @@ Lo que ya se acordó. La IA no debe proponer lo contrario sin hablarlo en el dai
     miembros de la organización `entren-ando-itm` y admin del repositorio.
 12. **Aviso de privacidad:** versión 1.0 del 10 de noviembre de 2026; correo de contacto
     l24120371@morelia.tecnm.mx. ENT-42 guarda la versión aceptada (ENT-76).
+13. **Ids de las solicitudes de IA:** las solicitudes de IA las crea la nube y el celular guarda el
+    mismo id (`id_solicitud`), igual que con el usuario. Así el ciclo generado con IA, la comida
+    escaneada y el feedback apuntan a una solicitud que sí existe en Supabase al sincronizar
+    (ENT-44; lo usan ENT-101 de Axel y ENT-109). Las del usuario demo las crea
+    `supabase/ajustes_ent44.sql`.
 
 ---
 
@@ -97,14 +102,16 @@ Lo que ya se acordó. La IA no debe proponer lo contrario sin hablarlo en el dai
 
 Cosas detectadas que todavía no se arreglan. Quien la resuelva, la tacha (~~así~~) y pone su PR.
 
-* **Zona horaria de Supabase (para ENT-44, Ángel).** Supabase trabaja en UTC: una comida registrada
-  a las 23:30 del día 9 regresa como "10 de noviembre 05:30" y cambiaría de día. Arreglo:
-  `ALTER DATABASE postgres SET timezone TO 'America/Mexico_City';` en `supabase/esquema.sql`, o
-  convertir a hora de CDMX al bajar los datos.
+* ~~**Zona horaria de Supabase (para ENT-44, Ángel).**~~ Resuelto en PR #11: `ALTER DATABASE postgres SET
+  timezone TO 'America/Mexico_City'` en `supabase/esquema.sql` y `supabase/ajustes_ent44.sql`.
 * **`feedback_ia` en Supabase (para ENT-69, Axel / Ángel).** La política de UPDATE deja cambiar el
   texto del mensaje, no solo `leido`. Se cierra permitiendo actualizar solo esa columna.
 * **Ramas viejas en GitHub.** Las ramas de los PR #1 a #6 ya están integradas y se pueden borrar
   (GitHub → Branches).
+* **Hoy con varios ciclos activos (para ENT-20, Paola).** `hoy_repositorio.dart` toma el ciclo
+  activo con `LIMIT 1` sin orden; con Premium puede haber varios y ENT-47 pide el de `fecha_inicio`
+  más reciente. Arreglo: usar `RutinasRepositorio.consultaCicloParaHoy` (o agregar
+  `ORDER BY fecha_inicio DESC, creado_en DESC`). Con el plan Gratuito no se nota.
 
 ---
 
@@ -122,7 +129,10 @@ Problemas que ya le pasaron a alguien, con su solución.
   `android.suppressUnsupportedCompileSdk=37` en `android/gradle.properties`. No los cambies.
 * **Después de `flutter upgrade` falla Gradle ("JVM 17 or later" o "Android Gradle Plugin version ... is lower"):**
   usa el Java de Android Studio con `flutter config --jdk-dir "C:\Program Files\Android\Android Studio\jbr"`,
-  reabre Git Bash y corre `flutter clean`. El proyecto usa Android Gradle Plugin 9.1.1 y Gradle 9.5.0 (PR de ENT-22).
+  reabre Git Bash y corre `flutter clean`. El proyecto usa Android Gradle Plugin 9.1.1 y Gradle 9.5.0 (PR #13, ENT-22).
+* **La app no sincroniza (sale "Nube apagada"):** falta `entren_ando/.env` o correr con
+  `flutter run --dart-define-from-file=.env`. Copia `.env.example` y llénalo (ver
+  `lib/features/nube/LEEME.md`).
 * **Cambié el esquema y la app truena:** desinstala la app del emulador para que la base se cree de
   nuevo (o sube `BaseDatos.version` con su migración, con acuerdo del equipo).
 * **Los datos demo tienen fechas viejas:** Perfil → "Reiniciar datos de prueba" (solo en debug).
@@ -148,12 +158,18 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `import 'package:entren_ando/core/diseno.dart'` | `lib/core/tema`, `lib/core/componentes` | Tema, medidas y todos los componentes |
 | `hayRedProvider` y `ref.read(hayRedProvider.notifier).revisar()` | `lib/core/conectividad/conectividad.dart` | Saber si hay internet de verdad y reaccionar cuando vuelve la red (ENT-44) |
 | `BotonConRed` | `lib/core/conectividad/boton_con_red.dart` | Botones que necesitan internet |
+| `ClienteSupabase.cliente` | `lib/features/nube/cliente_supabase.dart` | El cliente de Supabase (null si no hay `.env`). ENT-41 inicia sesión con él |
+| `sincronizacionProvider` y `.notifier.sincronizar()` | `lib/core/sync/sincronizacion.dart` | Estado de la sincronización y subir ya (ENT-54) |
 | `AvisoSinRed` | ya puesto en `lib/app.dart` | No lo agregues en tus pantallas |
 | `CatalogoRepositorio.nombreVisible` y `joinAlias` | `lib/features/perfil/catalogo/catalogo_repositorio.dart` | Nombre del ejercicio con el alias del usuario (lo necesitan ENT-39 y ENT-49) |
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
 | `diaDeHoyProvider` (`DiaDeHoy`, `EjercicioDelDia`) | `lib/features/entrenamiento/hoy_repositorio.dart` | Rutina de hoy con alias, descanso y avance; también los días que vienen |
 | `TemporizadorFlotante`, `temporizadorProvider` | `lib/features/entrenamiento/temporizador/` | Descanso o trabajo con hora de fin (lo usa ENT-49) |
+| `BitacoraRepositorio`, `ejercicioBitacoraProvider`, `sesionDeHoyProvider` | `lib/features/entrenamiento/bitacora/` | Series de hoy de un ejercicio (guardar, quitar y precarga), terminar ejercicio, estado y comentario de la sesión; ruta `/hoy/ejercicio/:idProgramado` |
 | Rutas `/perfil/catalogo`, `/perfil/editar`, `/perfil/mediciones`, `/perfil/equipo` | `lib/app.dart` | Abrir esas pantallas con `context.push(...)` |
+| `rutinasRepositorioProvider`, `RutinasRepositorio.consultaCicloParaHoy` y `consultaEjerciciosDelDia` | `lib/features/rutinas/rutinas_repositorio.dart` | Ciclos, días y ejercicios programados; el ciclo que usa Hoy (lo necesita ENT-58 para guardar la rutina de la IA) |
+| Rutas `/perfil/ciclos`, `/perfil/ciclos/:idCiclo` y `/perfil/ciclos/:idCiclo/dia/:idDia` | `lib/app.dart` | Abrir Mis ciclos, un ciclo o el editor de un día |
+| `alternativasRepositorioProvider` y `AlternativasRepositorio.consultaAlternativas` | `lib/features/rutinas/alternativas/alternativas_repositorio.dart` | Alternativas de un ejercicio por prioridad, con alias (para cambiar de ejercicio en la sesión, RF-04) |
 
 ---
 
@@ -184,6 +200,19 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Ángel · nube, red, sincronización y comidas (`supabase/`, `lib/core/conectividad`, `lib/core/sync`, `lib/features/nube`, `lib/features/nutricion`)
 
+* **2026-11-18 · ENT-44 · Ángel · PR #11**
+  Qué: `MotorSync` sube lo pendiente a Supabase (upsert por id, lotes de 100, orden de llaves
+  foráneas) al abrir la app, al volver la red y al iniciar sesión. Cliente de Supabase con `.env` y
+  pantalla de prueba para entrar como demo.
+  Las tablas hijas (días, ejercicios, registros, series) se filtran por su dueño.
+  Por qué / decisión: el demo de Supabase usa el mismo id que el del celular y
+  `supabase/ajustes_ent44.sql` crea sus 3 solicitudes de IA (decisión 13); con eso suben todas las
+  filas del demo (antes solo 19, revisión de Pablo). Probado contra PostgreSQL 16 con RLS: 532 de
+  532 filas, sin duplicar al repetir.
+  Para el siguiente: corre la app con `--dart-define-from-file=.env`; ENT-41 debe iniciar sesión
+  con `ClienteSupabase.cliente` y ENT-54 lee `sincronizacionProvider`. Quita `DEMO_PASSWORD` del
+  `.env` antes de armar el APK de entrega (ENT-62).
+
 * **2026-11-17 · ENT-46 · Ángel · PR #12**
   Qué: `docs/reportes/sprint2.md`, corte al 17 de noviembre (estado de cada historia e impedimentos).
   Para el siguiente: al cierre del sprint se completan puntos, burndown y retrospectiva.
@@ -213,6 +242,24 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Axel · perfil, catálogo, rutinas e IA (`lib/features/perfil`, `lib/features/rutinas`, `lib/features/ia`)
 
+* **2026-11-17 · ENT-48 (ENT-86) · Axel · PR #17**
+  Qué: alternativas por ejercicio programado (Editor del día → tocar ejercicio → Alternativas):
+  hasta 3 del catálogo con prioridad 1 a 3, sin repetir ni usar el mismo ejercicio. El selector
+  muestra por defecto el mismo grupo muscular. Subir, bajar y quitar renumeran la prioridad.
+  Por qué / decisión: quitar es `eliminado = 1`; en ciclos archivados se ven en solo lectura.
+  Para el siguiente: ENT-58 guarda las alternativas de la IA con prioridad 1, 2, 3 y aquí se
+  editan. RF-04 (cambiar en la sesión) las lee con `AlternativasRepositorio.consultaAlternativas`.
+
+* **2026-11-17 · ENT-47 (ENT-83, ENT-84, ENT-85) · Axel · PR #15**
+  Qué: Perfil → Mis ciclos: crear ciclos con nombre y fechas, sus 7 días (rutina o descanso) y el
+  editor de cada día (agregar, quitar y reordenar ejercicios del catálogo; series, reps, peso,
+  descanso y trabajo). Archivar y reactivar; un ciclo archivado se ve en solo lectura.
+  Por qué / decisión: el límite sale de `plan.max_ciclos_activos`; al llegar a él se ofrece
+  archivar el ciclo actual o ver Premium (por ahora avisa "muy pronto" hasta ENT-52). Las fechas
+  se escriben dd/mm/aaaa porque la app no tiene el calendario de Android en español.
+  Para el siguiente: Hoy debe tomar el ciclo de `RutinasRepositorio.consultaCicloParaHoy` (ver
+  "Pendientes técnicos"). Quitar un ejercicio también marca sus alternativas (ENT-48).
+
 * **2026-11-10 · ENT-18 · Axel · PR #4 (integrado con #3)**
   Qué: editar perfil (objetivo, nivel, días, lesiones), mediciones biométricas y equipo que tiene
   el usuario, con validaciones y pruebas.
@@ -225,7 +272,34 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Paola · entrenamiento del día y calendario (`lib/features/entrenamiento`, `lib/features/calendario`)
 
-* **2026-11-11 · ENT-19 (ENT-37, ENT-38) · Paola · PR #(pendiente)**
+* **2026-11-17 · ENT-50 (ENT-90) · Paola · PR #(pendiente)**
+  Qué: botón "Terminar ejercicio" en la pantalla del ejercicio (marca `registro_ejercicio.completado`
+  aunque falten series y regresa a Hoy; "Volver a abrir" lo desmarca). La marca "Sigue" de Hoy ya
+  avanza. Tarjeta "Sesión completa / parcial" en Hoy con el comentario libre del día.
+  Por qué / decisión: `BitacoraRepositorio._recalcularSesion` corre en la misma transacción cada vez
+  que cambia una serie o un ejercicio: 'completa' si todos los ejercicios del día están completados
+  con sus series objetivo; si no, 'parcial' (regla pura `estadoSesion`, con pruebas). `hora_inicio`
+  se guarda al crear la sesión y `hora_fin` con el último cambio (formato 'HH:MM:SS').
+  Para el siguiente: el calendario (ENT-60) ya puede leer `sesion_entrenamiento.estado` de los días
+  entrenados en la app. El comentario se guarda en `sesion_entrenamiento.comentario` para la IA (ENT-68).
+
+* **2026-11-17 · ENT-49 (ENT-87, ENT-88, ENT-89) · Paola · PR #(pendiente)**
+  Qué: bitácora rápida en `/hoy/ejercicio/:idProgramado` (`03_ejercicio.png`). Series precargadas
+  de la última vez del mismo `id_ejercicio` o de los objetivos; 1 toque guarda la serie y empieza el
+  descanso; tocar los números abre + y −. `BitacoraRepositorio` crea la sesión del día (una por
+  usuario y fecha, 'parcial'), el `registro_ejercicio` y cada `serie` en una transacción.
+  También los pendientes de la revisión del PR #9: el aviso del temporizador hace programar y
+  cancelar en orden (ya no suena si pausas o saltas al empezar), el permiso de alarmas exactas ya
+  no abre Ajustes solo (la tarjeta muestra un aviso con "Activar"), tiempo como "01:12" y pruebas
+  en `test/temporizador_test.dart` y `test/bitacora_test.dart`. Se quitó "Probar temporizador".
+  Por qué / decisión: el descanso empieza solo al marcar la serie (1 toque; el diseño dice
+  "Empezó al marcar la serie 2"). Una serie se actualiza si ya existe (índice único
+  `id_registro, numero_serie`) y quitar el ✓ la marca eliminada.
+  Para el siguiente: "Terminar ejercicio" y `registro_ejercicio.completado` son de ENT-50; hasta
+  entonces la marca "Sigue" de Hoy no avanza. "Cambiar solo hoy" es ENT-59. Se tocó
+  `lib/app.dart` solo para agregar la ruta hija de `/hoy`.
+
+* **2026-11-11 · ENT-19 (ENT-37, ENT-38) · Paola · PR #9**
   Qué: temporizador de descanso y trabajo (`temporizadorProvider`, `TemporizadorFlotante`) con −15 s,
   +15 s, Reiniciar y Saltar, y notificación local con sonido y vibración a la hora de fin.
   Por qué / decisión: guarda la hora de fin en vez de contar segundos (no se desfasa en segundo
