@@ -189,6 +189,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
 | `diaDeHoyProvider` (`DiaDeHoy`, `EjercicioDelDia`) | `lib/features/entrenamiento/hoy_repositorio.dart` | Rutina de hoy con alias, descanso y avance; también los días que vienen |
 | `TemporizadorFlotante`, `temporizadorProvider` | `lib/features/entrenamiento/temporizador/` | Descanso o trabajo con hora de fin (lo usa ENT-49) |
+| `diasDeAntiguedad`, `sePuedeEditar` | `lib/features/calendario/override/antiguedad.dart` | Regla de los 30 días (RF-10) para cualquier pantalla que edite días pasados |
 | `mesCalendarioProvider`, `detalleDiaProvider`, `colorearMes` | `lib/features/calendario/` | Colores del mes y detalle de un día (lo usan ENT-70 y ENT-71) |
 | `BitacoraRepositorio`, `ejercicioBitacoraProvider`, `sesionDeHoyProvider` | `lib/features/entrenamiento/bitacora/` | Series de hoy de un ejercicio (guardar, quitar y precarga), terminar ejercicio, estado y comentario de la sesión; ruta `/hoy/ejercicio/:idProgramado` |
 | Rutas `/perfil/catalogo`, `/perfil/editar`, `/perfil/mediciones`, `/perfil/equipo` | `lib/app.dart` | Abrir esas pantallas con `context.push(...)` |
@@ -347,6 +348,16 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Para el siguiente: usa `CatalogoRepositorio.nombreVisible` y `joinAlias` para mostrar nombres.
 
 ### Paola · entrenamiento del día y calendario (`lib/features/entrenamiento`, `lib/features/calendario`)
+
+* **2026-11-25 · ENT-70 (ENT-117, ENT-118) · Paola · PR #(pendiente)**
+  Qué: en la hoja de un día gris de los últimos 30 días aparece "Forzar a completado": crea la
+  sesión con `es_override = 1` y estado 'completa', copiando ejercicios y series de la última sesión
+  del mismo día de la rutina (o los objetivos si no hay) y el día pasa a verde al instante. Con más de
+  30 días el botón no aparece y sale "este día no se puede cambiar"; los días futuros no se tocan.
+  Por qué / decisión: la regla vive en una sola función, `diasDeAntiguedad` / `sePuedeEditar`
+  (`lib/features/calendario/override/antiguedad.dart`, hora de Ciudad de México, días naturales), igual
+  que la valida la nube (decisión 17). Pruebas en `test/antiguedad_test.dart`.
+  Para el siguiente: si otro módulo necesita saber si un día se puede editar, usa `sePuedeEditar`.
 
 * **2026-11-25 · ENT-60 (ENT-106, ENT-107, ENT-108) · Paola · PR #(pendiente)**
   Qué: pestaña Calendario con el mes completo (`04_calendario.png`): verde, naranja, azul y gris; hoy

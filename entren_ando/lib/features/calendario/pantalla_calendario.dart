@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import '../../core/db/fechas.dart';
 import '../../core/diseno.dart';
 import 'calendario_repositorio.dart';
+import 'override/antiguedad.dart';
+import 'override/override_repositorio.dart';
 
 /// Pestaña Calendario: semáforo mensual (ENT-60 / ENT-107, RF-08).
 ///
@@ -15,7 +17,8 @@ import 'calendario_repositorio.dart';
 /// vienen, sin color. Las flechas cambian de mes y al tocar un día se ve qué se
 /// hizo: ejercicios y series.
 ///
-/// Cambiar lo que pasó un día (override con bloqueo de 30 días) es ENT-70.
+/// Un día gris de los últimos 30 se puede "Forzar a completado" (ENT-70, RF-09);
+/// los de más de 30 días ya no se pueden cambiar (RF-10).
 class PantallaCalendario extends ConsumerWidget {
   const PantallaCalendario({super.key});
 
@@ -180,7 +183,8 @@ class PantallaCalendario extends ConsumerWidget {
         ),
         const SizedBox(height: 18),
         Text(
-          'Los días se pintan solos al terminar la rutina. Toca un día para ver qué hiciste.',
+          'Los días se pintan solos al terminar la rutina. Toca un día para ver qué hiciste '
+          'o, si es de los últimos $diasEditables, marcarlo después.',
           style: textos.bodySmall,
         ),
         // ENT-108: solo en debug, para medir que cargue en menos de 1.5 s.
@@ -248,11 +252,35 @@ class _HojaDetalle extends ConsumerWidget {
           error: (error, _) => Aviso('No se pudo leer el día: $error', icono: Icons.error_outline_rounded),
           data: (d) {
             if (d == null) {
-              return Aviso(
-                dia.estado == EstadoDia.descanso
-                    ? 'Día de descanso según tu rutina.'
-                    : 'No registraste entrenamiento este día.',
-                icono: Icons.info_outline_rounded,
+              if (dia.estado == EstadoDia.descanso) {
+                return const Aviso('Día de descanso según tu rutina.', icono: Icons.info_outline_rounded);
+              }
+              // ENT-70: un día gris de los últimos 30 días se puede forzar a completado.
+              final fechaTexto = Fechas.fecha(dia.fecha);
+              if (dia.estado != EstadoDia.sinActividad) {
+                return const Aviso('No registraste entrenamiento este día.', icono: Icons.info_outline_rounded);
+              }
+              if (!sePuedeEditar(fechaTexto)) {
+                return const Aviso(
+                  'Ya pasaron más de $diasEditables días: este día no se puede cambiar.',
+                  icono: Icons.lock_outline_rounded,
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Aviso(
+                    '¿Entrenaste y olvidaste registrarlo? Se copia tu última sesión de ese día de la rutina.',
+                    icono: Icons.info_outline_rounded,
+                  ),
+                  const SizedBox(height: Medidas.espacio4),
+                  BotonSecundario(
+                    texto: 'Forzar a completado',
+                    icono: Icons.check_circle_outline_rounded,
+                    nivel: 2,
+                    alPresionar: () => _forzar(context, ref, fechaTexto),
+                  ),
+                ],
               );
             }
             if (d.ejercicios.isEmpty) {
@@ -313,6 +341,21 @@ class _HojaDetalle extends ConsumerWidget {
         BotonTexto(texto: 'Cerrar', anchoCompleto: true, alPresionar: () => Navigator.pop(context)),
       ],
     );
+  }
+
+  /// Crea la sesión con es_override = 1 y repinta el mes al instante.
+  Future<void> _forzar(BuildContext context, WidgetRef ref, String fecha) async {
+    try {
+      final repositorio = await ref.read(overrideRepositorioProvider.future);
+      await repositorio?.forzarCompletado(fecha);
+      ref.invalidate(mesCalendarioProvider(DateTime.utc(dia.fecha.year, dia.fecha.month)));
+      ref.invalidate(detalleDiaProvider(fecha));
+      if (context.mounted) Navigator.pop(context);
+    } catch (error) {
+      if (!context.mounted) return;
+      final mensaje = error is StateError ? error.message : '$error';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
+    }
   }
 
   static String _kg(double kg) => kg % 1 == 0 ? kg.toStringAsFixed(0) : kg.toStringAsFixed(1);
