@@ -8,6 +8,7 @@ import '../../core/diseno.dart';
 import 'calendario_repositorio.dart';
 import 'override/antiguedad.dart';
 import 'override/override_repositorio.dart';
+import 'resumen_mes.dart';
 
 /// Pestaña Calendario: semáforo mensual (ENT-60 / ENT-107, RF-08).
 ///
@@ -187,6 +188,9 @@ class PantallaCalendario extends ConsumerWidget {
           'o, si es de los últimos $diasEditables, marcarlo después.',
           style: textos.bodySmall,
         ),
+        // ENT-71: resumen del mes debajo del calendario.
+        const SizedBox(height: Medidas.espacio5),
+        _ResumenDelMes(primerDia: DateTime.utc(datos.anio, datos.mes)),
         // ENT-108: solo en debug, para medir que cargue en menos de 1.5 s.
         if (kDebugMode && datos.milisegundos != null) ...[
           const SizedBox(height: Medidas.espacio2),
@@ -218,6 +222,71 @@ class PantallaCalendario extends ConsumerWidget {
     return mostrarHojaInferior<void>(
       context: context,
       constructor: (contexto) => _HojaDetalle(dia: dia, fecha: fecha),
+    );
+  }
+}
+
+/// Tarjetas de resumen del mes (ENT-71 / ENT-120): cumplimiento, volumen y
+/// los 3 ejercicios con más progreso. Los días por color ya están en la leyenda.
+class _ResumenDelMes extends ConsumerWidget {
+  const _ResumenDelMes({required this.primerDia});
+
+  final DateTime primerDia;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resumen = ref.watch(resumenMesProvider(primerDia)).value;
+    if (resumen == null) return const SizedBox.shrink();
+    final textos = Theme.of(context).textTheme;
+    final volumen = NumberFormat.decimalPattern('es_MX').format(resumen.volumenKg.round());
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const EtiquetaSeccion('Resumen del mes'),
+        const SizedBox(height: Medidas.espacio3),
+        Row(
+          children: [
+            Expanded(
+              child: TarjetaDato(
+                valor: resumen.porcentaje == null ? '—' : '${resumen.porcentaje}',
+                unidad: resumen.porcentaje == null ? null : '%',
+                etiqueta: 'Cumplimiento',
+              ),
+            ),
+            const SizedBox(width: Medidas.espacio3),
+            Expanded(child: TarjetaDato(valor: volumen, unidad: 'kg', etiqueta: 'Volumen levantado')),
+          ],
+        ),
+        const SizedBox(height: Medidas.espacio5),
+        const EtiquetaSeccion('Más progreso'),
+        const SizedBox(height: Medidas.espacio3),
+        if (resumen.top.isEmpty)
+          const Aviso('Todavía no subes de peso en ningún ejercicio este mes.', icono: Icons.trending_flat_rounded)
+        else
+          for (final p in resumen.top) ...[
+            Tarjeta(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p.nombre, style: textos.titleMedium, overflow: TextOverflow.ellipsis),
+                        Text(
+                          '${_HojaDetalle._kg(p.primeroKg)} → ${_HojaDetalle._kg(p.ultimoKg)} kg',
+                          style: textos.bodySmall?.copyWith(fontFeatures: TipografiaEntrenAndo.numerosTabulares),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Pastilla('+${_HojaDetalle._kg(p.diferenciaKg)} kg'),
+                ],
+              ),
+            ),
+            const SizedBox(height: Medidas.espacio2),
+          ],
+      ],
     );
   }
 }

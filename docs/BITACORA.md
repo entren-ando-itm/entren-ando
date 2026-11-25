@@ -189,6 +189,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
 | `diaDeHoyProvider` (`DiaDeHoy`, `EjercicioDelDia`) | `lib/features/entrenamiento/hoy_repositorio.dart` | Rutina de hoy con alias, descanso y avance; también los días que vienen |
 | `TemporizadorFlotante`, `temporizadorProvider` | `lib/features/entrenamiento/temporizador/` | Descanso o trabajo con hora de fin (lo usa ENT-49) |
+| `resumenMesProvider`, `calcularResumen` | `lib/features/calendario/resumen_mes.dart` | Cumplimiento, volumen y top 3 de progreso del mes (la IA puede usarlo en el feedback) |
 | `diasDeAntiguedad`, `sePuedeEditar` | `lib/features/calendario/override/antiguedad.dart` | Regla de los 30 días (RF-10) para cualquier pantalla que edite días pasados |
 | `mesCalendarioProvider`, `detalleDiaProvider`, `colorearMes` | `lib/features/calendario/` | Colores del mes y detalle de un día (lo usan ENT-70 y ENT-71) |
 | `BitacoraRepositorio`, `ejercicioBitacoraProvider`, `sesionDeHoyProvider` | `lib/features/entrenamiento/bitacora/` | Series de hoy de un ejercicio (guardar, quitar y precarga), terminar ejercicio, estado y comentario de la sesión; ruta `/hoy/ejercicio/:idProgramado` |
@@ -348,6 +349,16 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Para el siguiente: usa `CatalogoRepositorio.nombreVisible` y `joinAlias` para mostrar nombres.
 
 ### Paola · entrenamiento del día y calendario (`lib/features/entrenamiento`, `lib/features/calendario`)
+
+* **2026-11-25 · ENT-71 (ENT-119, ENT-120) · Paola · PR #(pendiente)**
+  Qué: debajo del calendario, "Resumen del mes": cumplimiento (%), volumen levantado (kg) y los 3
+  ejercicios con más progreso (primera contra última serie del mes). Los días por color ya están en
+  la leyenda.
+  Por qué / decisión: cumplimiento = (completos + ½ parciales) ÷ días que tocaba entrenar; los
+  descansos no cuentan. Progreso solo con peso (los de peso corporal no entran). Una sola consulta
+  de series del mes y la función pura `calcularResumen` (pruebas en `test/resumen_mes_test.dart`).
+  Para el siguiente: el resumen no está en `docs/pantallas/`; se armó con `TarjetaDato`, `Tarjeta` y
+  `Pastilla` (avisar a Pablo para agregarlo al lienzo).
 
 * **2026-11-25 · ENT-70 (ENT-117, ENT-118) · Paola · PR #(pendiente)**
   Qué: en la hoja de un día gris de los últimos 30 días aparece "Forzar a completado": crea la
