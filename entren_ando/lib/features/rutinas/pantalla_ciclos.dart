@@ -209,7 +209,7 @@ class _HojaDatosCicloState extends State<HojaDatosCiclo> {
         return;
       }
       final limite = await repositorio.limite();
-      if (limite.puedeActivarOtro) {
+      if (limite.puedeCrearOtro) {
         final id = await repositorio.crearCiclo(nombre: nombre, fechaInicio: inicio, fechaFin: fin);
         if (mounted) Navigator.pop(context, id);
         return;

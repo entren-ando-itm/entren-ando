@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/db/base_datos.dart';
 import '../../core/db/datos_prueba.dart';
+import '../../core/db/usuario_actual.dart';
 import '../../core/diseno.dart';
 import '../nube/indicador_sync.dart';
 import 'perfil_repositorio.dart';
@@ -22,6 +23,8 @@ class PantallaPerfil extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final resumen = ref.watch(resumenPerfilProvider);
     final modo = ref.watch(modoTemaProvider);
+    // Reiniciar borra la base del celular: solo tiene sentido con el demo.
+    final esDemo = ref.watch(sesionActualProvider)?.esDemo ?? false;
     final oscuro = modo == ThemeMode.dark ||
         (modo == ThemeMode.system && Theme.of(context).brightness == Brightness.dark);
 
@@ -178,19 +181,24 @@ class PantallaPerfil extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Estás usando el usuario demo (${DatosPrueba.correoDemo}). '
-                        'Reiniciar borra la base del emulador y la crea de nuevo '
-                        'con datos de prueba con fechas de hoy.',
+                        esDemo
+                            ? 'Estás usando el usuario demo (${DatosPrueba.correoDemo}). '
+                                'Reiniciar borra la base del emulador y la crea de nuevo '
+                                'con datos de prueba con fechas de hoy.'
+                            : 'Reiniciar los datos de prueba solo está disponible con el usuario '
+                                'demo: con una cuenta real borraría tus datos del celular.',
                         style: textos.bodyMedium,
                       ),
                       const SizedBox(height: 14),
                       BotonSecundario(
                         texto: 'Reiniciar datos de prueba',
                         nivel: 2,
-                        alPresionar: () async {
-                          await BaseDatos.reiniciarDatosPrueba();
-                          ref.invalidate(baseDatosProvider);
-                        },
+                        alPresionar: esDemo
+                            ? () async {
+                                await BaseDatos.reiniciarDatosPrueba();
+                                ref.invalidate(baseDatosProvider);
+                              }
+                            : null,
                       ),
                       const SizedBox(height: Medidas.espacio2),
                       BotonTexto(

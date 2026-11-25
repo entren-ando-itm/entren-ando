@@ -79,6 +79,10 @@ Lo que ya se acordó. La IA no debe proponer lo contrario sin hablarlo en el dai
    El servidor controla `usuario.id_plan`, `suscripcion` y `evento_pago`. La app conserva una copia
    para uso sin red. La prueba dura 30 días y permite reactivación. Al cancelar (de inmediato) o
    vencer, se vuelve a Gratuito y se archivan los ciclos excedentes conservando el más reciente.
+   **RN-01 precisada por el PO (25 de noviembre):** en Gratuito el límite cuenta todos los ciclos
+   (activos y archivados): no se puede crear otro ni archivar y reactivar para tener varias rutinas;
+   se edita el que ya se tiene. Los ciclos extra al dejar Premium quedan archivados solo para
+   consultarlos. El historial de entrenamientos no se pierde. Ver `LimiteCiclos`.
 7. **Solicitudes de IA:** la app no puede crear filas en `solicitud_ia` ni en `feedback_ia` en la
    nube; las crea la Edge Function. Así nadie se salta el límite de 3 escaneos al día.
 8. **Sin red:** lo que necesita internet (IA, cámara, inicio de sesión) usa `BotonConRed`; la
@@ -218,6 +222,13 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Pablo · base, diseño y cuenta (`lib/core/db`, `lib/core/tema`, `lib/core/componentes`, `lib/features/cuenta`)
+
+* **2026-11-25 · ENT-127, ENT-41 y RN-01 · Pablo · PR #25**
+  Saludo según la hora en Hoy ("Buenas noches, Pablo", toca `pantalla_hoy.dart` de Paola); hoja de
+  bienvenida al entrar; mensajes de Supabase (correo inválido, demasiados intentos); la
+  sincronización también arranca al recuperar la sesión y al cambiar de usuario (toca
+  `sincronizacion.dart` de Ángel); RN-01 precisada: Gratuito tiene 1 ciclo en total (toca rutinas de
+  Axel, ver decisión 6).
 
 * **2026-11-24 · ENT-52 (ENT-95) · Pablo · PR pendiente**
   Cancelar Premium (de inmediato) y vencimiento a los 30 días: funciones `cancelar_premium_prueba` y

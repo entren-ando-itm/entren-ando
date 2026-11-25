@@ -21,8 +21,8 @@ class VerPremium extends EleccionLimite {
 
 /// Hoja del límite RN-01: "Tu plan Gratuito permite 1 ciclo activo".
 ///
-/// Ofrece archivar uno de los ciclos activos o ver Premium. Devuelve null si
-/// el usuario la cierra.
+/// En Gratuito solo ofrece ver Premium (RN-01 precisada: 1 ciclo en total).
+/// Devuelve null si el usuario la cierra. [activos] se conserva por compatibilidad.
 Future<EleccionLimite?> mostrarHojaLimiteCiclos(
   BuildContext context, {
   required LimiteCiclos limite,
@@ -37,23 +37,14 @@ Future<EleccionLimite?> mostrarHojaLimiteCiclos(
       children: [
         EncabezadoHoja(
           titulo: 'Límite de tu plan',
-          subtitulo: 'Tu plan ${limite.plan} permite $maximo ciclo${maximo == 1 ? '' : 's'} activo'
-              '${maximo == 1 ? '' : 's'}. Archiva uno para activar otro: no se borra y lo puedes '
-              'reactivar después.',
+          subtitulo: 'Tu plan ${limite.plan} incluye $maximo ciclo${maximo == 1 ? '' : 's'}. '
+              'Edita el que ya tienes o activa Premium para guardar un ciclo por semestre y '
+              'reactivar los archivados. Tu historial de entrenamientos no se pierde.',
         ),
         const SizedBox(height: Medidas.espacio5),
-        for (final ciclo in activos) ...[
-          FilaOpcion(
-            titulo: 'Archivar «${ciclo.nombre}»',
-            descripcion: 'Deja de verse en Hoy',
-            inicio: Icon(Icons.inventory_2_outlined, size: 22, color: contexto.colores.tinta),
-            alTocar: () => Navigator.pop(contexto, ArchivarCiclo(ciclo.idCiclo)),
-          ),
-          const SizedBox(height: Medidas.espacio2),
-        ],
         FilaOpcion(
           titulo: 'Ver Premium',
-          descripcion: 'Ciclos activos sin límite',
+          descripcion: 'Ciclos sin límite',
           inicio: Icon(Icons.workspace_premium_outlined, size: 22, color: contexto.colores.tinta),
           alTocar: () => Navigator.pop(contexto, const VerPremium()),
         ),

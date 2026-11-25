@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/db/base_datos.dart';
 import '../../core/db/fechas.dart';
+import '../../core/db/usuario_actual.dart';
 import '../../core/diseno.dart';
 import 'bitacora/bitacora_repositorio.dart';
 import 'hoy_repositorio.dart';
@@ -17,6 +19,50 @@ import 'hoy_repositorio.dart';
 /// 4. Franjas con los días que vienen esta semana (la "escalera").
 ///
 /// Todo se lee de la base local, así que funciona en modo avión (RNF-01).
+/// "Buenos días", "Buenas tardes" o "Buenas noches" según la hora (ENT-127):
+/// 5:00–11:59, 12:00–18:59 y 19:00–4:59, hora de Ciudad de México.
+String saludoSegunHora(int hora) {
+  if (hora >= 5 && hora < 12) return 'Buenos días';
+  if (hora >= 12 && hora < 19) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+/// Primer nombre del usuario actual, para el saludo de Hoy.
+final nombreUsuarioProvider = FutureProvider<String?>((ref) async {
+  final idUsuario = ref.watch(usuarioActualIdProvider);
+  if (idUsuario == null) return null;
+  final bd = await ref.watch(baseDatosProvider.future);
+  final filas = await bd.rawQuery(
+    'SELECT nombre FROM usuario WHERE id_usuario = ? AND eliminado = 0',
+    [idUsuario],
+  );
+  final nombre = (filas.isEmpty ? null : filas.first['nombre'] as String?)?.trim() ?? '';
+  if (nombre.isEmpty) return null;
+  // El demo se llama "Usuario Demo": con solo el primer nombre diría "Usuario".
+  if (ref.watch(sesionActualProvider)?.esDemo ?? false) return nombre;
+  return nombre.split(RegExp(r'\s+')).first;
+});
+
+/// "Buenas noches, Pablo" arriba del encabezado de Hoy (ENT-127).
+class _Saludo extends ConsumerWidget {
+  const _Saludo();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nombre = ref.watch(nombreUsuarioProvider).value;
+    final saludo = saludoSegunHora(Fechas.ahoraCdmx().hour);
+    // Mismo estilo que el nombre en Perfil (headlineSmall, tinta) para que se
+    // distinga de la etiqueta del ciclo, y más aire antes del encabezado.
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Medidas.espacio6),
+      child: Text(
+        nombre == null ? saludo : '$saludo, $nombre',
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: context.colores.tinta),
+      ),
+    );
+  }
+}
+
 class PantallaHoy extends ConsumerWidget {
   const PantallaHoy({super.key});
 
@@ -37,6 +83,7 @@ class PantallaHoy extends ConsumerWidget {
           }
           return ContenidoPantalla(
             children: [
+              const _Saludo(),
               _Encabezado(dia),
               const SizedBox(height: Medidas.espacio5),
               ..._cuerpoDelDia(context, dia),

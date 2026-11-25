@@ -140,7 +140,7 @@ class PantallaCiclo extends ConsumerWidget {
     final limite = await repositorio.limite();
     if (!context.mounted) return;
     var archivar = <String>[];
-    if (!limite.puedeActivarOtro) {
+    if (!limite.puedeReactivar) {
       final activos = (await repositorio.ciclos()).where((c) => c.activo).toList();
       if (!context.mounted) return;
       final eleccion = await mostrarHojaLimiteCiclos(context, limite: limite, activos: activos);
