@@ -167,6 +167,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `rutinasRepositorioProvider`, `RutinasRepositorio.consultaCicloParaHoy` y `consultaEjerciciosDelDia` | `lib/features/rutinas/rutinas_repositorio.dart` | Ciclos, días y ejercicios programados; el ciclo que usa Hoy (lo necesita ENT-58 para guardar la rutina de la IA) |
 | Rutas `/perfil/ciclos`, `/perfil/ciclos/:idCiclo` y `/perfil/ciclos/:idCiclo/dia/:idDia` | `lib/app.dart` | Abrir Mis ciclos, un ciclo o el editor de un día |
 | `alternativasRepositorioProvider` y `AlternativasRepositorio.consultaAlternativas` | `lib/features/rutinas/alternativas/alternativas_repositorio.dart` | Alternativas de un ejercicio por prioridad, con alias (para cambiar de ejercicio en la sesión, RF-04) |
+| Edge Function `generar-rutina` (`logica.ts`: `MENSAJES`, `ErrorRutina`, `extraerJson`) | `supabase/functions/generar-rutina/` | Rutina semanal con IA; el patrón (JWT, `solicitud_ia` con llave de servicio, errores en español) sirve para ENT-65 y ENT-68 |
 
 ---
 
@@ -233,6 +234,15 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Pendiente: zona horaria de CDMX y UPDATE de `feedback_ia` (ver "Pendientes técnicos").
 
 ### Axel · perfil, catálogo, rutinas e IA (`lib/features/perfil`, `lib/features/rutinas`, `lib/features/ia`)
+
+* **2026-11-24 · ENT-57 (ENT-100, ENT-101) · Axel · PR #(pendiente)**
+  Qué: Edge Function `supabase/functions/generar-rutina`: valida el JWT, pide a Gemini Flash una
+  semana en JSON con esquema, valida los ids contra la tabla `ejercicio` y registra `solicitud_ia`
+  (`pendiente` → `completada` o `fallida`). Errores en español (sesión, perfil, cuota, sin respuesta).
+  Por qué / decisión: si la IA inventa ids se reintenta una vez y luego se descartan; 13 s por intento
+  para caber en los 30 s de la app. El modelo se cambia con el secreto `GEMINI_MODELO`.
+  Para el siguiente: falta publicarla y poner `GEMINI_API_KEY` (pasos en su `LEEME.md`). ENT-58 la
+  llama con `functions.invoke('generar-rutina')` y guarda el ciclo con el `id_solicitud`.
 
 * **2026-11-17 · ENT-48 (ENT-86) · Axel · PR #17**
   Qué: alternativas por ejercicio programado (Editor del día → tocar ejercicio → Alternativas):
