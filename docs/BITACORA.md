@@ -235,7 +235,7 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Axel · perfil, catálogo, rutinas e IA (`lib/features/perfil`, `lib/features/rutinas`, `lib/features/ia`)
 
-* **2026-11-24 · ENT-57 (ENT-100, ENT-101) · Axel · PR #(pendiente)**
+* **2026-11-24 · ENT-57 (ENT-100, ENT-101) · Axel · PR #23**
   Qué: Edge Function `supabase/functions/generar-rutina`: valida el JWT, pide a Gemini Flash una
   semana en JSON con esquema, valida los ids contra la tabla `ejercicio` y registra `solicitud_ia`
   (`pendiente` → `completada` o `fallida`). Errores en español (sesión, perfil, cuota, sin respuesta).
