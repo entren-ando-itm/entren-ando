@@ -226,6 +226,11 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Ángel · nube, red, sincronización y comidas (`supabase/`, `lib/core/conectividad`, `lib/core/sync`, `lib/features/nube`, `lib/features/nutricion`)
 
+* **2026-11-23 · ENT-56 · Ángel · PR #22**
+  Qué: `docs/reportes/sprint3.md`, corte al 23 de noviembre (día 1): estado y puntos de cada historia
+  (28 comprometidos, 7 en revisión) e impedimentos.
+  Para el siguiente: al cierre del sprint se completan puntos terminados, burndown y retrospectiva.
+
 * **2026-11-23 · ENT-55 · Ángel · PR #21**
   * Qué cambió: `docs/pruebas/cifrado_y_sync.md` con las 6 pruebas de cifrado y sincronización y su
     evidencia. Las pruebas 2 a 6 pasan en el simulador `docs/pruebas/simulador/` (PostgreSQL 16 que imita
