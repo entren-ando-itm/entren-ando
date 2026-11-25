@@ -76,6 +76,9 @@ class MensajesCuenta {
       'Te enviamos un correo para confirmar tu cuenta. Después inicia sesión.';
   static const String correoEnUso = 'No se pudo crear la cuenta con ese correo. Si ya tienes una, inicia sesión.';
   static const String contrasenaDebil = 'Esa contraseña no se puede usar. Prueba con una más larga.';
+  static const String correoInvalido = 'Ese correo no es válido. Revisa que esté bien escrito.';
+  static const String demasiadosIntentos =
+      'Hiciste muchos intentos seguidos. Espera unos minutos y vuelve a intentar.';
   static const String revisaTuCorreo =
       'Si el correo tiene cuenta, te llegará un enlace para cambiar la contraseña.';
 }

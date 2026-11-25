@@ -137,6 +137,18 @@ Cosas detectadas que todavía no se arreglan. Quien la resuelva, la tacha (~~as�
 
 ---
 
+## Ideas para después (backlog del PO)
+
+Salieron de probar la app el 25 de noviembre. No están en ningún sprint; si sobra tiempo se
+platican en la planeación. Ya están en Jira: ENT-121 a ENT-128.
+
+* **Progreso por ejercicio:** gráfica del peso de un ejercicio en las últimas semanas (encaja con ENT-71).
+* **Racha de entrenamiento:** "Llevas 5 semanas cumpliendo tu rutina" en Hoy, con los datos del calendario.
+* **Notas por ejercicio:** una nota corta ("agarre cerrado") que aparece la siguiente vez que lo haces.
+* **Recordatorio para entrenar:** notificación local a la hora que elijas, solo en los días de tu rutina.
+
+---
+
 ## Trampas conocidas
 
 Problemas que ya le pasaron a alguien, con su solución.
