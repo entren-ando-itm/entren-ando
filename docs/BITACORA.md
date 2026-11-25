@@ -180,6 +180,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `ClienteSupabase.cliente` | `lib/features/nube/cliente_supabase.dart` | El cliente de Supabase (null si no hay `.env`). ENT-41 inicia sesión con él |
 | `sincronizacionProvider` y `.notifier.sincronizar()` | `lib/core/sync/sincronizacion.dart` | Estado de la sincronización (`ultimaVez`, `bajadas`, `descartadas`) y sincronizar ya: sube y baja (ENT-54) |
 | `MarcasSync` | `lib/core/sync/marcas_sync.dart` | Hora de la última sincronización por usuario (también la de segundo plano) |
+| `IconoSincronizacion` | `lib/features/nube/indicador_sync.dart` | Icono pequeño con el estado del respaldo (ENT-54) |
 | `AvisoSinRed` | ya puesto en `lib/app.dart` | No lo agregues en tus pantallas |
 | `CatalogoRepositorio.nombreVisible` y `joinAlias` | `lib/features/perfil/catalogo/catalogo_repositorio.dart` | Nombre del ejercicio con el alias del usuario (lo necesitan ENT-39 y ENT-49) |
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
@@ -233,6 +234,14 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   * Qué debe saber el siguiente: para probar cambios del servidor sin tocar el Supabase del equipo,
     corre `bash nube_limpia.sh` y `python3 pruebas55.py` (Linux o WSL). Los scripts leen las tablas de
     `motor_sync.dart`, así que si agregas una tabla allí también entra en la prueba.
+
+* **2026-11-23 · ENT-54 · Ángel · PR #20**
+  Qué: Perfil → Ajustes → "Respaldo en la nube" con `IconoSincronizacion` (sincronizado, pendiente con
+  número, sincronizando o error); su pantalla muestra la última sincronización y "Sincronizar ahora".
+  Por qué / decisión: pantalla nueva armada con los componentes de Ajustes (no hay PNG); la fila va
+  antes de "Tema" para no chocar con "Cuenta y privacidad" (PR #18).
+  Para el siguiente: el icono se puede poner en otras pantallas (`IconoSincronizacion()`). Depende
+  del PR #19 (ENT-53).
 
 * **2026-11-23 · ENT-53 · Ángel · PR #19**
   Qué: bajar cambios de la nube (gana el `actualizado_en` más reciente), celular nuevo baja todo,
