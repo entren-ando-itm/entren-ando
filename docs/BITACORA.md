@@ -106,6 +106,13 @@ Lo que ya se acordó. La IA no debe proponer lo contrario sin hablarlo en el dai
 16. **Cerrar sesión (ENT-43):** por ahora NO borra los datos del celular, porque todavía no existe
     la bajada desde la nube (ENT-53) y el usuario vería su app vacía al volver. Si hay cambios sin
     subir, avisa y deja subirlos antes de salir.
+17. **Regla de los 30 días en la nube (RF-10, ENT-53):** Supabase rechaza **cambiar o borrar**
+    sesiones, registros y series de un día con más de 30 días (código `EA010`); el celular se queda con
+    la versión de la nube. **Subir por primera vez** un entrenamiento viejo sí se permite: se guardó en
+    su día sin red; también deja subir los datos de prueba y bajar el respaldo a un celular nuevo.
+18. **Bajar cambios (ENT-53):** por tabla, desde la última marca (`actualizado_en`, en
+    shared_preferences); en conflicto gana el más reciente; una vez al día se revisa todo, porque un
+    cambio hecho sin red llega a la nube con su hora vieja.
 
 ---
 
@@ -171,7 +178,8 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `hayRedProvider` y `ref.read(hayRedProvider.notifier).revisar()` | `lib/core/conectividad/conectividad.dart` | Saber si hay internet de verdad y reaccionar cuando vuelve la red (ENT-44) |
 | `BotonConRed` | `lib/core/conectividad/boton_con_red.dart` | Botones que necesitan internet |
 | `ClienteSupabase.cliente` | `lib/features/nube/cliente_supabase.dart` | El cliente de Supabase (null si no hay `.env`). ENT-41 inicia sesión con él |
-| `sincronizacionProvider` y `.notifier.sincronizar()` | `lib/core/sync/sincronizacion.dart` | Estado de la sincronización y subir ya (ENT-54) |
+| `sincronizacionProvider` y `.notifier.sincronizar()` | `lib/core/sync/sincronizacion.dart` | Estado de la sincronización (`ultimaVez`, `bajadas`, `descartadas`) y sincronizar ya: sube y baja (ENT-54) |
+| `MarcasSync` | `lib/core/sync/marcas_sync.dart` | Hora de la última sincronización por usuario (también la de segundo plano) |
 | `AvisoSinRed` | ya puesto en `lib/app.dart` | No lo agregues en tus pantallas |
 | `CatalogoRepositorio.nombreVisible` y `joinAlias` | `lib/features/perfil/catalogo/catalogo_repositorio.dart` | Nombre del ejercicio con el alias del usuario (lo necesitan ENT-39 y ENT-49) |
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
@@ -216,6 +224,15 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Por qué: que cada quien pueda trabajar su módulo sin esperar a los demás.
 
 ### Ángel · nube, red, sincronización y comidas (`supabase/`, `lib/core/conectividad`, `lib/core/sync`, `lib/features/nube`, `lib/features/nutricion`)
+
+* **2026-11-23 · ENT-53 · Ángel · PR #19**
+  Qué: bajar cambios de la nube (gana el `actualizado_en` más reciente), celular nuevo baja todo,
+  sincronización cada 15 minutos en segundo plano (`workmanager`) y trigger de 30 días en Supabase
+  (`supabase/ajustes_ent53.sql`, código `EA010`).
+  Por qué / decisión: decisiones 17 y 18. Probado contra PostgreSQL 16 con RLS: cambio en la nube,
+  los dos lados de un conflicto, rechazo de 30 días y celular nuevo (503 de 503 filas).
+  Para el siguiente: correr `ajustes_ent53.sql` en Supabase. ENT-54 lee `EstadoSync.ultimaVez`,
+  `bajadas` y `descartadas`. Paquetes nuevos: `shared_preferences` y `workmanager`.
 
 * **2026-11-18 · ENT-44 · Ángel · PR #11**
   Qué: `MotorSync` sube lo pendiente a Supabase (upsert por id, lotes de 100, orden de llaves

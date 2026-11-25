@@ -32,3 +32,6 @@ Corre `supabase/ajustes_ent44.sql` en el SQL Editor (se puede correr más de una
    (`00000000-0000-0000-0000-000000000001`). Sin eso, RLS rechaza todo lo que sube el demo.
 3. Crea las 3 solicitudes de IA del demo con los mismos ids que en el celular. Sin eso se rechaza
    el ciclo demo y todo lo que cuelga de él (días, ejercicios, sesiones, series).
+
+Después corre `supabase/ajustes_ent53.sql` (ENT-53, también se puede repetir): el trigger de la regla
+de los 30 días (RF-10) en `sesion_entrenamiento`, `registro_ejercicio` y `serie`.
