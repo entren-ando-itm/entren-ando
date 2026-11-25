@@ -189,7 +189,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
 | `diaDeHoyProvider` (`DiaDeHoy`, `EjercicioDelDia`) | `lib/features/entrenamiento/hoy_repositorio.dart` | Rutina de hoy con alias, descanso y avance; también los días que vienen |
 | `TemporizadorFlotante`, `temporizadorProvider` | `lib/features/entrenamiento/temporizador/` | Descanso o trabajo con hora de fin (lo usa ENT-49) |
-| `BitacoraRepositorio`, `ejercicioBitacoraProvider`, `sesionDeHoyProvider` | `lib/features/entrenamiento/bitacora/` | Series de hoy de un ejercicio (guardar, quitar y precarga), terminar ejercicio, estado y comentario de la sesión; ruta `/hoy/ejercicio/:idProgramado` |
+| `BitacoraRepositorio`, `ejercicioBitacoraProvider`, `sesionDeHoyProvider` | `lib/features/entrenamiento/bitacora/` | Series de hoy de un ejercicio (guardar, quitar y precarga), terminar ejercicio, estado y comentario de la sesión, alternativas y "Cambiar solo hoy" (`alternativasProvider`, `sustituir`); ruta `/hoy/ejercicio/:idProgramado` |
 | Rutas `/perfil/catalogo`, `/perfil/editar`, `/perfil/mediciones`, `/perfil/equipo` | `lib/app.dart` | Abrir esas pantallas con `context.push(...)` |
 | `rutinasRepositorioProvider`, `RutinasRepositorio.consultaCicloParaHoy` y `consultaEjerciciosDelDia` | `lib/features/rutinas/rutinas_repositorio.dart` | Ciclos, días y ejercicios programados; el ciclo que usa Hoy (lo necesita ENT-58 para guardar la rutina de la IA) |
 | Rutas `/perfil/ciclos`, `/perfil/ciclos/:idCiclo` y `/perfil/ciclos/:idCiclo/dia/:idDia` | `lib/app.dart` | Abrir Mis ciclos, un ciclo o el editor de un día |
@@ -346,6 +346,18 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Para el siguiente: usa `CatalogoRepositorio.nombreVisible` y `joinAlias` para mostrar nombres.
 
 ### Paola · entrenamiento del día y calendario (`lib/features/entrenamiento`, `lib/features/calendario`)
+
+* **2026-11-24 · ENT-59 (ENT-104, ENT-105) · Paola · PR #(pendiente)**
+  Qué: botón "Cambiar solo hoy" en la pantalla del ejercicio con las alternativas de
+  `alternativa_ejercicio` por prioridad (sin alternativas no aparece). Al elegir una, el
+  `registro_ejercicio` de hoy guarda el `id_ejercicio` de la alternativa con `es_sustitucion = 1`
+  y el `id_programado` del original. La hoja permite volver al original. Hoy muestra el nombre de la
+  alternativa y la precarga usa el historial de la alternativa.
+  Por qué / decisión: nunca se toca `ejercicio_programado`, así que mañana y la plantilla siguen con
+  el original. No se puede cambiar si ya hay series guardadas hoy (serían de otro ejercicio): hay que
+  quitarles la ✓ primero.
+  Para el siguiente: para saber qué se hizo hoy, usa `registro_ejercicio.id_ejercicio`, no el de
+  `ejercicio_programado`.
 
 * **2026-11-17 · ENT-50 (ENT-90) · Paola · PR #(pendiente)**
   Qué: botón "Terminar ejercicio" en la pantalla del ejercicio (marca `registro_ejercicio.completado`
