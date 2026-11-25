@@ -147,6 +147,9 @@ Problemas que ya le pasaron a alguien, con su solución.
   Manager.
 * **Error de compileSdk:** el proyecto usa `compileSdk = 37` y
   `android.suppressUnsupportedCompileSdk=37` en `android/gradle.properties`. No los cambies.
+* **Después de `flutter upgrade` falla Gradle ("JVM 17 or later" o "Android Gradle Plugin version ... is lower"):**
+  usa el Java de Android Studio con `flutter config --jdk-dir "C:\Program Files\Android\Android Studio\jbr"`,
+  reabre Git Bash y corre `flutter clean`. El proyecto usa Android Gradle Plugin 9.1.1 y Gradle 9.5.0 (PR #13, ENT-22).
 * **La app no sincroniza (sale "Nube apagada"):** falta `entren_ando/.env` o correr con
   `flutter run --dart-define-from-file=.env`. Copia `.env.example` y llénalo (ver
   `lib/features/nube/LEEME.md`).
@@ -200,7 +203,7 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Pablo · base, diseño y cuenta (`lib/core/db`, `lib/core/tema`, `lib/core/componentes`, `lib/features/cuenta`)
 
-* **2026-11-18 · ENT-41, ENT-42 y ENT-43 · Pablo · PR de ENT-72**
+* **2026-11-18 · ENT-41, ENT-42 y ENT-43 · Pablo · PR #18**
   Qué: inicio de sesión, crear cuenta y recuperar contraseña con Supabase Auth (usa
   `ClienteSupabase` de Ángel); la app abre en `/entrar` sin sesión y entra sin red si ya había
   sesión; aviso de privacidad dentro de la app y casilla obligatoria al registrarse; Perfil →
@@ -209,6 +212,11 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Para el siguiente: en debug usa "Entrar como demo". Para cuentas reales corre con
   `flutter run --dart-define-from-file=.env` y apaga "Confirm email" en Supabase → Authentication.
   Toqué una línea de Perfil (Axel): la fila "Cuenta y privacidad".
+
+* **2026-11-17 · ENT-22 · Pablo · PR #13**
+  Qué: Android Gradle Plugin 9.1.0 → 9.1.1 y Gradle 9.3.1 → 9.5.0, porque el Flutter nuevo pide
+  mínimo AGP 9.1.1 y ya no compilaba.
+  Para el siguiente: después de `flutter upgrade`, revisa la trampa de Gradle en "Trampas conocidas".
 
 * **2026-11-11 · ENT-24 · Pablo · bitácora**
   Qué: se crea esta bitácora y la regla en AGENTS.md y CLAUDE.md para mantenerla al día.
