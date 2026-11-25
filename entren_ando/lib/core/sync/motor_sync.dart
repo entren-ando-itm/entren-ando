@@ -340,10 +340,14 @@ class MotorSync {
   }
 
   /// Cuántas filas del usuario faltan por subir (para mostrarlo en pantalla).
-  Future<int> contarPendientes(String idUsuario) async {
+  Future<int> contarPendientes(String idUsuario) => contarPendientesEn(_bd, idUsuario);
+
+  /// Igual que [contarPendientes], sin necesitar la conexión con Supabase
+  /// (el indicador de ENT-54 lo muestra aunque no haya red ni llaves).
+  static Future<int> contarPendientesEn(DatabaseExecutor bd, String idUsuario) async {
     var total = 0;
     for (final tabla in [...tablas, const TablaSync('feedback_ia', ['id_feedback'])]) {
-      final filas = await _bd.rawQuery(
+      final filas = await bd.rawQuery(
         'SELECT COUNT(*) AS n FROM ${tabla.nombre} WHERE pendiente_sync = 1 AND ${tabla.dueno}',
         [idUsuario],
       );

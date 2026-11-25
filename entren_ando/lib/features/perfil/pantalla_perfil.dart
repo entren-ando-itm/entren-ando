@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../core/db/base_datos.dart';
 import '../../core/db/datos_prueba.dart';
 import '../../core/diseno.dart';
+import '../nube/indicador_sync.dart';
 import 'perfil_repositorio.dart';
 
 /// Pestaña Perfil (módulo perfil).
@@ -135,6 +136,14 @@ class PantallaPerfil extends ConsumerWidget {
               const SizedBox(height: 10),
               GrupoFilas(
                 filas: [
+                  // ENT-54 (Ángel): estado del respaldo y "Sincronizar ahora".
+                  FilaAjuste(
+                    titulo: 'Respaldo en la nube',
+                    icono: Icons.cloud_outlined,
+                    fin: const IconoSincronizacion(),
+                    mostrarFlecha: true,
+                    alTocar: () => context.push('/perfil/respaldo'),
+                  ),
                   FilaAjuste(
                     titulo: 'Tema',
                     fin: SelectorSegmentos<ThemeMode>(
