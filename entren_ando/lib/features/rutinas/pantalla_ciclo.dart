@@ -149,7 +149,7 @@ class PantallaCiclo extends ConsumerWidget {
         case ArchivarCiclo(:final idCiclo):
           archivar = [idCiclo];
         case VerPremium():
-          await mostrarPremiumPronto(context);
+          await context.push('/perfil/premium');
           return;
         case null:
           return;

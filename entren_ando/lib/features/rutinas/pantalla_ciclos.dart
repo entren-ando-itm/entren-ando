@@ -231,7 +231,7 @@ class _HojaDatosCicloState extends State<HojaDatosCiclo> {
           if (mounted) Navigator.pop(context, id);
         case VerPremium():
           setState(() => _guardando = false);
-          await mostrarPremiumPronto(context);
+          await context.push('/perfil/premium');
         case null:
           setState(() => _guardando = false);
       }

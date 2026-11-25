@@ -35,6 +35,8 @@ def psql_admin(sql):
 
 def a_nube(t, fila):
     f = dict(fila)
+    if t['nombre'] == 'usuario':
+        f.pop('id_plan', None)
     for c in ['eliminado', *t['booleanas']]:
         if isinstance(f.get(c), (int, float)): f[c] = f[c] != 0
     f['pendiente_sync'] = False

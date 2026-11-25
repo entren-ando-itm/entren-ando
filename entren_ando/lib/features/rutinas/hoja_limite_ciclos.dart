@@ -61,19 +61,3 @@ Future<EleccionLimite?> mostrarHojaLimiteCiclos(
     ),
   );
 }
-
-/// Mientras no exista la pantalla Premium (ENT-52), avisa que llega pronto.
-Future<void> mostrarPremiumPronto(BuildContext context) {
-  return mostrarHojaInferior<void>(
-    context: context,
-    constructor: (contexto) => Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const EncabezadoHoja(titulo: 'Premium', subtitulo: 'Muy pronto podrás activar Premium desde aquí.'),
-        const SizedBox(height: Medidas.espacio5),
-        BotonSecundario(texto: 'Entendido', alPresionar: () => Navigator.pop(contexto)),
-      ],
-    ),
-  );
-}

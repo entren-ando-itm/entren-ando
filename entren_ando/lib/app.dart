@@ -13,6 +13,7 @@ import 'features/calendario/pantalla_calendario.dart';
 import 'features/cuenta/pantalla_aviso.dart';
 import 'features/cuenta/pantalla_cuenta.dart';
 import 'features/cuenta/pantalla_inicio_sesion.dart';
+import 'features/cuenta/pantalla_premium.dart';
 import 'features/cuenta/pantalla_registro.dart';
 import 'features/entrenamiento/bitacora/pantalla_ejercicio.dart';
 import 'features/entrenamiento/pantalla_hoy.dart';
@@ -145,6 +146,11 @@ final GoRouter rutas = GoRouter(
                     ],
                   ),
                 ],
+              ),
+              GoRoute(
+                path: 'premium',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) => const PantallaPremium(),
               ),
               // ENT-43: cuenta, aviso de privacidad y cerrar sesión (sin la barra).
               GoRoute(

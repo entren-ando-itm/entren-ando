@@ -37,3 +37,7 @@ Corre `supabase/ajustes_ent44.sql` en el SQL Editor (se puede correr más de una
 
 Después corre `supabase/ajustes_ent53.sql` (ENT-53, también se puede repetir): el trigger de la regla
 de los 30 días (RF-10) en `sesion_entrenamiento`, `registro_ejercicio` y `serie`.
+
+Para ENT-52 aplica `supabase/ajustes_ent52.sql` después de las políticas. Entrega el control
+del plan, las suscripciones y los eventos de pago al servidor. Configuración y prueba en
+[el LEEME de premium-prueba](../../../../supabase/functions/premium-prueba/LEEME.md).

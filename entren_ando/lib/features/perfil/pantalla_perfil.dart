@@ -155,6 +155,11 @@ class PantallaPerfil extends ConsumerWidget {
                       alCambiar: (nuevo) => ref.read(modoTemaProvider.notifier).cambiar(nuevo),
                     ),
                   ),
+                  FilaAjuste(
+                    titulo: 'Premium',
+                    icono: Icons.workspace_premium_outlined,
+                    alTocar: () => context.push('/perfil/premium'),
+                  ),
                   // ENT-43 (Pablo): cuenta, aviso de privacidad y cerrar sesión.
                   FilaAjuste(
                     titulo: 'Cuenta y privacidad',
