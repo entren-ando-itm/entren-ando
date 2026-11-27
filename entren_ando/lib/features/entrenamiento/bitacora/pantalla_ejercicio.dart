@@ -20,7 +20,8 @@ import 'bitacora_repositorio.dart';
 /// * "Terminar ejercicio" (ENT-50) marca el ejercicio aunque falten series,
 ///   recalcula el estado de la sesión y regresa a Hoy.
 ///
-/// Pendiente en otra historia: "Cambiar solo hoy" (ENT-59).
+/// * "Cambiar solo hoy" (ENT-59): cambia el ejercicio por una alternativa solo
+///   hoy; sin alternativas, el botón no aparece.
 class PantallaEjercicio extends ConsumerStatefulWidget {
   const PantallaEjercicio({super.key, required this.idProgramado});
 
@@ -69,13 +70,23 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
 
     return ContenidoPantalla(
       children: [
-        _Encabezado(idProgramado: widget.idProgramado),
+        _Encabezado(
+          idProgramado: widget.idProgramado,
+          accion: _botonCambiar(ejercicio),
+        ),
         const SizedBox(height: Medidas.espacio5),
         EtiquetaSeccion(_etiqueta(ejercicio)),
         const SizedBox(height: Medidas.espacio2),
         Text(ejercicio.nombre.toUpperCase(), style: textos.headlineMedium),
         const SizedBox(height: Medidas.espacio1),
         Text(_vezPasada(ejercicio), style: textos.bodyMedium),
+        if (ejercicio.esSustitucion) ...[
+          const SizedBox(height: Medidas.espacio1),
+          Text(
+            'Solo hoy, en lugar de ${ejercicio.nombreOriginal}',
+            style: textos.bodySmall,
+          ),
+        ],
         const SizedBox(height: Medidas.espacio5),
         for (final serie in series) ...[
           _FilaSerie(
@@ -131,6 +142,80 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('No se pudo terminar el ejercicio: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  /// "Cambiar solo hoy" (ENT-59). No aparece si el ejercicio no tiene alternativas.
+  Widget? _botonCambiar(EjercicioBitacora ejercicio) {
+    final alternativas = ref.watch(alternativasProvider(widget.idProgramado)).value ?? const [];
+    if (alternativas.isEmpty) return null;
+    return BotonChico(
+      texto: 'Cambiar solo hoy',
+      icono: Icons.swap_horiz_rounded,
+      alPresionar: _guardando ? null : () => _cambiar(ejercicio, alternativas),
+    );
+  }
+
+  /// Hoja con las alternativas (por prioridad) y, si ya se cambió, el original.
+  Future<void> _cambiar(EjercicioBitacora ejercicio, List<AlternativaEjercicio> alternativas) async {
+    final conSeries = ejercicio.seriesGuardadas > 0;
+    final elegido = await mostrarHojaInferior<int>(
+      context: context,
+      constructor: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const EncabezadoHoja(
+            titulo: 'Cambiar solo hoy',
+            subtitulo: 'Mañana y tu rutina siguen con el ejercicio original',
+          ),
+          const SizedBox(height: Medidas.espacio4),
+          if (conSeries) ...[
+            const Aviso(
+              'Ya guardaste series de este ejercicio. Quítales la ✓ para poder cambiarlo.',
+              icono: Icons.info_outline_rounded,
+            ),
+            const SizedBox(height: Medidas.espacio4),
+          ],
+          if (ejercicio.esSustitucion && ejercicio.idEjercicioOriginal != null)
+            FilaOpcion(
+              titulo: ejercicio.nombreOriginal ?? 'Ejercicio original',
+              descripcion: 'El de tu rutina',
+              inicio: Icon(Icons.undo_rounded, size: 22, color: context.colores.tinta2),
+              alTocar: conSeries
+                  ? null
+                  : () => Navigator.pop(context, ejercicio.idEjercicioOriginal),
+            ),
+          for (final alternativa in alternativas)
+            FilaOpcion(
+              titulo: alternativa.nombre,
+              descripcion: alternativa.equipo ?? 'Peso corporal',
+              seleccionada: alternativa.idEjercicio == ejercicio.idEjercicio,
+              alTocar: conSeries ? null : () => Navigator.pop(context, alternativa.idEjercicio),
+            ),
+        ],
+      ),
+    );
+    if (elegido == null || !mounted) return;
+
+    final repositorio = await ref.read(bitacoraRepositorioProvider.future);
+    if (repositorio == null) return;
+    setState(() => _guardando = true);
+    try {
+      await repositorio.sustituir(idProgramado: widget.idProgramado, idEjercicio: elegido);
+      _ajustes.clear();
+      ref.read(temporizadorProvider.notifier).detener();
+      ref.invalidate(ejercicioBitacoraProvider(widget.idProgramado));
+      ref.invalidate(diaDeHoyProvider);
+      ref.invalidate(sesionDeHoyProvider);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo cambiar el ejercicio: $error')),
         );
       }
     } finally {
@@ -227,9 +312,12 @@ String formatoKg(double kg) => kg % 1 == 0 ? kg.toStringAsFixed(0) : kg.toString
 
 /// Botón Volver y "2 de 5".
 class _Encabezado extends ConsumerWidget {
-  const _Encabezado({required this.idProgramado});
+  const _Encabezado({required this.idProgramado, this.accion});
 
   final String idProgramado;
+
+  /// "Cambiar solo hoy" a la derecha, como en el diseño.
+  final Widget? accion;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -248,6 +336,8 @@ class _Encabezado extends ConsumerWidget {
             '${posicion + 1} de ${ejercicios.length}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.colores.tinta2),
           ),
+        const Spacer(),
+        ?accion,
       ],
     );
   }
