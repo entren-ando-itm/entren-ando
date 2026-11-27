@@ -14,6 +14,8 @@ class GaleriaComponentes extends StatefulWidget {
 
 class _GaleriaComponentesState extends State<GaleriaComponentes> {
   bool _acepto = true;
+  String _inicio = '2026-11-23';
+  String? _fin;
   bool _segundoSegmento = false;
   int _pestana = 0;
 
@@ -159,6 +161,20 @@ class _GaleriaComponentesState extends State<GaleriaComponentes> {
           const CampoTexto(etiqueta: 'Correo', pista: 'tu@correo.com', teclado: TextInputType.emailAddress),
           const SizedBox(height: Medidas.espacio3),
           const CampoTexto(etiqueta: 'Contraseña', esContrasena: true),
+          const SizedBox(height: Medidas.espacio3),
+          CampoFecha(
+            etiqueta: 'Inicio',
+            valor: _inicio,
+            alCambiar: (fecha) => setState(() => _inicio = fecha ?? _inicio),
+          ),
+          const SizedBox(height: Medidas.espacio3),
+          CampoFecha(
+            etiqueta: 'Fin (opcional)',
+            valor: _fin,
+            opcional: true,
+            desde: _inicio,
+            alCambiar: (fecha) => setState(() => _fin = fecha),
+          ),
           const SizedBox(height: Medidas.espacio2),
           Casilla(
             valor: _acepto,

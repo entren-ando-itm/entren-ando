@@ -186,44 +186,38 @@ class HojaDatosCiclo extends StatefulWidget {
 class _HojaDatosCicloState extends State<HojaDatosCiclo> {
   final GlobalKey<FormState> _formulario = GlobalKey<FormState>();
   late final TextEditingController _nombre = TextEditingController(text: widget.ciclo?.nombre ?? '');
-  late final TextEditingController _inicio = TextEditingController(
-    text: FechaCiclo.aCampo(widget.ciclo?.fechaInicio ?? RutinasRepositorio.hoy()),
-  );
-  late final TextEditingController _fin = TextEditingController(
-    text: () {
-      final ciclo = widget.ciclo;
-      if (ciclo == null) return FechaCiclo.aCampo(FechaCiclo.finSugerido(RutinasRepositorio.hoy()));
-      final fin = ciclo.fechaFin;
-      return fin == null ? '' : FechaCiclo.aCampo(fin);
-    }(),
-  );
+  late String _inicio = widget.ciclo?.fechaInicio ?? RutinasRepositorio.hoy();
+
+  /// El fin es opcional: en un ciclo nuevo empieza vacío.
+  late String? _fin = widget.ciclo?.fechaFin;
   bool _guardando = false;
   String? _error;
 
   @override
   void dispose() {
     _nombre.dispose();
-    _inicio.dispose();
-    _fin.dispose();
     super.dispose();
   }
 
-  String? _validarInicio(String? texto) =>
-      FechaCiclo.deCampo(texto) == null ? 'Escribe la fecha como 17/11/2026.' : null;
-
-  String? _validarFin(String? texto) {
-    if ((texto ?? '').trim().isEmpty) return null;
-    final fin = FechaCiclo.deCampo(texto);
-    if (fin == null) return 'Escribe la fecha como 30/06/2027 o déjala vacía.';
-    final inicio = FechaCiclo.deCampo(_inicio.text);
-    return inicio == null ? null : ValidarRutina.fechas(inicio, fin);
+  void _cambiarInicio(String inicio) {
+    setState(() {
+      _inicio = inicio;
+      // Si el fin quedó antes del nuevo inicio, se quita para elegirlo otra vez.
+      final fin = _fin;
+      if (fin != null && fin.compareTo(inicio) < 0) _fin = null;
+    });
   }
 
   Future<void> _guardar() async {
     if (!(_formulario.currentState?.validate() ?? false)) return;
     final nombre = _nombre.text.trim();
-    final inicio = FechaCiclo.deCampo(_inicio.text)!;
-    final fin = _fin.text.trim().isEmpty ? null : FechaCiclo.deCampo(_fin.text);
+    final inicio = _inicio;
+    final fin = _fin;
+    final errorFechas = ValidarRutina.fechas(inicio, fin);
+    if (errorFechas != null) {
+      setState(() => _error = errorFechas);
+      return;
+    }
     final repositorio = widget.repositorio;
     final ciclo = widget.ciclo;
 
@@ -293,35 +287,24 @@ class _HojaDatosCicloState extends State<HojaDatosCiclo> {
             etiqueta: 'Nombre',
             controlador: _nombre,
             pista: 'Por ejemplo: Semestre enero-junio',
-            accionTeclado: TextInputAction.next,
+            accionTeclado: TextInputAction.done,
             validar: ValidarRutina.nombre,
           ),
           const SizedBox(height: Medidas.espacio4),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: CampoTexto(
-                  etiqueta: 'Inicio',
-                  controlador: _inicio,
-                  pista: 'dd/mm/aaaa',
-                  teclado: TextInputType.datetime,
-                  accionTeclado: TextInputAction.next,
-                  validar: _validarInicio,
-                ),
-              ),
-              const SizedBox(width: Medidas.espacio3),
-              Expanded(
-                child: CampoTexto(
-                  etiqueta: 'Fin (opcional)',
-                  controlador: _fin,
-                  pista: 'dd/mm/aaaa',
-                  teclado: TextInputType.datetime,
-                  accionTeclado: TextInputAction.done,
-                  validar: _validarFin,
-                ),
-              ),
-            ],
+          CampoFecha(
+            etiqueta: 'Inicio',
+            valor: _inicio,
+            alCambiar: (fecha) {
+              if (fecha != null) _cambiarInicio(fecha);
+            },
+          ),
+          const SizedBox(height: Medidas.espacio4),
+          CampoFecha(
+            etiqueta: 'Fin (opcional)',
+            valor: _fin,
+            opcional: true,
+            desde: _inicio,
+            alCambiar: (fecha) => setState(() => _fin = fecha),
           ),
           if (error != null) ...[
             const SizedBox(height: Medidas.espacio4),

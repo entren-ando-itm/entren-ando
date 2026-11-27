@@ -224,12 +224,27 @@ class EjercicioDelDiaPasado {
     required this.completado,
     required this.esSustitucion,
     required this.series,
+    this.seriesObjetivo,
   });
 
   final String nombre;
+
+  /// Se tocó "Terminar ejercicio" (con todas o con menos series).
   final bool completado;
   final bool esSustitucion;
   final List<SerieDelDia> series;
+
+  /// Series de la rutina (null si el ejercicio ya no está en la rutina).
+  final int? seriesObjetivo;
+
+  /// ENT-121: verde con todas las series de la rutina.
+  bool get completo {
+    final objetivo = seriesObjetivo;
+    return objetivo == null ? completado && series.isNotEmpty : series.length >= objetivo;
+  }
+
+  /// ENT-121: naranja si lleva series pero no todas.
+  bool get parcial => !completo && series.isNotEmpty;
 }
 
 /// Lo que se hizo un día: estado, comentario, ejercicios y series.
@@ -270,9 +285,11 @@ final detalleDiaProvider = FutureProvider.family<DetalleDia?, String>((ref, fech
   final filas = await bd.rawQuery('''
     SELECT r.id_registro, r.orden, r.completado, r.es_sustitucion,
            COALESCE(ue.nombre_alias, e.nombre_oficial) AS nombre,
+           ep.series_objetivo,
            x.numero_serie, x.peso_kg, x.repeticiones
     FROM registro_ejercicio r
     JOIN ejercicio e ON e.id_ejercicio = r.id_ejercicio
+    LEFT JOIN ejercicio_programado ep ON ep.id_programado = r.id_programado
     LEFT JOIN usuario_ejercicio ue
       ON ue.id_ejercicio = r.id_ejercicio AND ue.id_usuario = ? AND ue.eliminado = 0
     LEFT JOIN serie x ON x.id_registro = r.id_registro AND x.eliminado = 0
@@ -290,6 +307,7 @@ final detalleDiaProvider = FutureProvider.family<DetalleDia?, String>((ref, fech
         completado: f['completado'] == 1,
         esSustitucion: f['es_sustitucion'] == 1,
         series: [],
+        seriesObjetivo: f['series_objetivo'] as int?,
       ),
     );
     if (f['numero_serie'] != null) {

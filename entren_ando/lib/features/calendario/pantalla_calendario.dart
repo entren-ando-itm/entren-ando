@@ -279,8 +279,12 @@ class _HojaDetalle extends ConsumerWidget {
                           Row(
                             children: [
                               Expanded(child: Text(e.nombre, style: textos.titleMedium)),
-                              if (e.completado)
-                                const Icon(Icons.check_circle_rounded, size: 20, color: ColoresSemaforo.completa),
+                              // ENT-121: verde con todas las series, naranja con algunas
+                              // y nada si no se hizo ninguna.
+                              if (e.completo)
+                                const Icon(Icons.check_circle_rounded, size: 20, color: ColoresSemaforo.completa)
+                              else if (e.parcial)
+                                const Icon(Icons.remove_circle_rounded, size: 20, color: ColoresSemaforo.parcial),
                             ],
                           ),
                           const SizedBox(height: Medidas.espacio1),
@@ -288,7 +292,9 @@ class _HojaDetalle extends ConsumerWidget {
                             e.series.isEmpty
                                 ? 'Sin series guardadas'
                                 : e.series
-                                    .map((s) => '${_kg(s.pesoKg)} kg × ${s.repeticiones}')
+                                    .map((s) => s.pesoKg > 0
+                                        ? '${_kg(s.pesoKg)} kg × ${s.repeticiones}'
+                                        : '${s.repeticiones} reps')
                                     .join('  ·  '),
                             style: textos.bodyMedium?.copyWith(
                               fontFeatures: TipografiaEntrenAndo.numerosTabulares,

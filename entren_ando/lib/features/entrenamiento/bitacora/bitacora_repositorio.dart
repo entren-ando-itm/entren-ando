@@ -181,12 +181,32 @@ class SesionDeHoy {
   final String? horaFin;
 }
 
-/// Regla de ENT-90: 'completa' si todos los ejercicios del día están completados
-/// con sus series objetivo; si no, 'parcial'. Función pura para poder probarla.
+/// Porcentaje de las series del día que hace falta para que el día cuente como
+/// completo (verde). Decisión del PO del 26 de noviembre (ENT-121).
+const double umbralDiaCompleto = 0.8;
+
+/// Regla del estado de la sesión (ENT-90, actualizada en ENT-121): 'completa'
+/// si se hizo al menos el 80% de las series objetivo del día; si no, 'parcial'.
+/// Las series de más en un ejercicio no compensan las que faltan en otro.
+/// Función pura para poder probarla.
 String estadoSesion(List<({bool completado, int seriesHechas, int seriesObjetivo})> ejercicios) {
-  final completa = ejercicios.isNotEmpty &&
-      ejercicios.every((e) => e.completado && e.seriesHechas >= e.seriesObjetivo);
-  return completa ? 'completa' : 'parcial';
+  final objetivo = ejercicios.fold<int>(0, (suma, e) => suma + e.seriesObjetivo);
+  if (objetivo <= 0) return 'parcial';
+  final hechas = ejercicios.fold<int>(
+    0,
+    (suma, e) => suma + (e.seriesHechas < e.seriesObjetivo ? e.seriesHechas : e.seriesObjetivo),
+  );
+  return hechas >= objetivo * umbralDiaCompleto ? 'completa' : 'parcial';
+}
+
+/// Se lanza al marcar o quitar una serie fuera de orden (ENT-121): se marcan
+/// de la primera a la última y solo se puede quitar la última marcada.
+class SerieFueraDeOrden implements Exception {
+  const SerieFueraDeOrden(this.mensaje);
+  final String mensaje;
+
+  @override
+  String toString() => mensaje;
 }
 
 class BitacoraRepositorio {
@@ -302,6 +322,11 @@ class BitacoraRepositorio {
     await _bd.transaction((txn) async {
       final escritura = EscrituraLocal(txn);
       final idRegistro = await _asegurarRegistro(txn, escritura, idProgramado);
+      // ENT-121: en orden. Se puede actualizar una ya guardada o marcar la que sigue.
+      final guardadas = await _numerosGuardados(txn, idRegistro);
+      if (!guardadas.contains(numero) && numero != _ultima(guardadas) + 1) {
+        throw const SerieFueraDeOrden('Marca las series en orden, de la primera a la última.');
+      }
       final valores = {
         'peso_kg': pesoKg,
         'repeticiones': repeticiones,
@@ -329,6 +354,15 @@ class BitacoraRepositorio {
     await _bd.transaction((txn) async {
       final registro = await _registroDeHoy(txn, idProgramado, Fechas.hoy());
       if (registro == null) return;
+      if (registro.completado) {
+        throw const SerieFueraDeOrden('Vuelve a abrir el ejercicio para quitar series.');
+      }
+      // ENT-121: solo la última marcada, para no dejar huecos.
+      final guardadas = await _numerosGuardados(txn, registro.id);
+      if (guardadas.isEmpty) return;
+      if (numero != _ultima(guardadas)) {
+        throw const SerieFueraDeOrden('Solo puedes quitar la última serie que marcaste.');
+      }
       final escritura = EscrituraLocal(txn);
       await escritura.marcarEliminado(
         'serie',
@@ -339,8 +373,73 @@ class BitacoraRepositorio {
     });
   }
 
-  /// "Terminar ejercicio" (ENT-50): `registro_ejercicio.completado = 1`, aunque
-  /// falten series. Con [completado] en false se vuelve a abrir.
+  /// "Terminar ejercicio" con un toque (ENT-121): guarda las series que faltan
+  /// con el peso y las repeticiones que muestra la pantalla (precarga u
+  /// objetivo; [ajustes] son los cambios con + y − aún sin guardar) y lo marca
+  /// completado. Todo en una transacción. Lo usan la pantalla del ejercicio y
+  /// el círculo de la lista de Hoy.
+  Future<void> terminarCompleto(String idProgramado, {Map<int, SerieBitacora> ajustes = const {}}) async {
+    final datos = await ejercicio(idProgramado);
+    if (datos == null) return;
+    await _bd.transaction((txn) async {
+      final escritura = EscrituraLocal(txn);
+      final idRegistro = await _asegurarRegistro(txn, escritura, idProgramado);
+      final guardadas = await _numerosGuardados(txn, idRegistro);
+      for (final serie in datos.series) {
+        if (guardadas.contains(serie.numero)) continue;
+        final valores = ajustes[serie.numero] ?? serie;
+        await escritura.insertar('serie', {
+          'id_registro': idRegistro,
+          'numero_serie': serie.numero,
+          'peso_kg': valores.pesoKg,
+          'repeticiones': valores.repeticiones,
+          'completada_en': Fechas.ahoraIso(),
+        });
+      }
+      await escritura.actualizar(
+        'registro_ejercicio',
+        {'completado': 1},
+        where: 'id_registro = ?',
+        whereArgs: [idRegistro],
+      );
+      await _recalcularSesion(txn, escritura);
+    });
+  }
+
+  /// "Terminar la sesión de hoy así como está" (mantener presionado "Seguir
+  /// entrenando", ENT-121): marca como terminados los ejercicios que faltan,
+  /// solo con las series que ya tenían. El día queda completo o parcial según
+  /// la regla del 80% ([estadoSesion]). Todo en una transacción.
+  Future<void> terminarDia(List<String> idsProgramados) async {
+    if (idsProgramados.isEmpty) return;
+    await _bd.transaction((txn) async {
+      final escritura = EscrituraLocal(txn);
+      for (final idProgramado in idsProgramados) {
+        final idRegistro = await _asegurarRegistro(txn, escritura, idProgramado);
+        await escritura.actualizar(
+          'registro_ejercicio',
+          {'completado': 1},
+          where: 'id_registro = ? AND completado = 0',
+          whereArgs: [idRegistro],
+        );
+      }
+      await _recalcularSesion(txn, escritura);
+    });
+  }
+
+  Future<List<int>> _numerosGuardados(DatabaseExecutor bd, String idRegistro) async {
+    final filas = await bd.rawQuery(
+      'SELECT numero_serie FROM serie WHERE id_registro = ? AND eliminado = 0 ORDER BY numero_serie',
+      [idRegistro],
+    );
+    return [for (final f in filas) f['numero_serie'] as int];
+  }
+
+  static int _ultima(List<int> guardadas) => guardadas.isEmpty ? 0 : guardadas.last;
+
+  /// "Terminar ejercicio" parcial (ENT-50; mantener presionado en ENT-121):
+  /// `registro_ejercicio.completado = 1` solo con las series que se hicieron.
+  /// Con [completado] en false se vuelve a abrir.
   Future<void> completarEjercicio(String idProgramado, {bool completado = true}) async {
     await _bd.transaction((txn) async {
       final escritura = EscrituraLocal(txn);
@@ -388,8 +487,8 @@ class BitacoraRepositorio {
 
   /// Regla del estado de la sesión de hoy (ENT-90), cada vez que cambia una
   /// serie o un ejercicio:
-  /// * **completa** (verde): todos los ejercicios del día están completados y
-  ///   cada uno tiene al menos sus series objetivo guardadas.
+  /// * **completa** (verde): al menos el 80% de las series objetivo del día
+  ///   están guardadas ([estadoSesion], ENT-121).
   /// * **parcial** (naranja): cualquier otro caso con la sesión ya empezada.
   /// También guarda hora_fin (la hora del último cambio).
   Future<void> _recalcularSesion(Transaction txn, EscrituraLocal escritura) async {

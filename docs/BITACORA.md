@@ -196,6 +196,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `EscrituraLocal` (`insertar`, `actualizar`, `marcarEliminado`) | `lib/core/db/escritura_local.dart` | Toda escritura: llena fechas, UUID y `pendiente_sync` |
 | `Fechas.hoy()`, `Fechas.ahoraIso()`, `Fechas.hoyComoFecha()` | `lib/core/db/fechas.dart` | Fechas en hora de CDMX |
 | `import 'package:entren_ando/core/diseno.dart'` | `lib/core/tema`, `lib/core/componentes` | Tema, medidas y todos los componentes |
+| `CampoFecha` | `lib/core/componentes/fechas.dart` | Elegir una fecha en un calendario (ISO 'aaaa-mm-dd'), con `opcional` y `desde` |
 | `hayRedProvider` y `ref.read(hayRedProvider.notifier).revisar()` | `lib/core/conectividad/conectividad.dart` | Saber si hay internet de verdad y reaccionar cuando vuelve la red (ENT-44) |
 | `BotonConRed` | `lib/core/conectividad/boton_con_red.dart` | Botones que necesitan internet |
 | `ClienteSupabase.cliente` | `lib/features/nube/cliente_supabase.dart` | El cliente de Supabase (null si no hay `.env`). ENT-41 inicia sesión con él |
@@ -225,6 +226,34 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Pablo · base, diseño y cuenta (`lib/core/db`, `lib/core/tema`, `lib/core/componentes`, `lib/features/cuenta`)
+
+* **2026-11-26 · ENT-121 · Pablo · PR pendiente**
+  Qué: la pantalla del ejercicio muestra las series una por una ("Serie 2 de 4", barra de avance y
+  las hechas arriba); se marcan en orden y solo se quita el ✓ de la última (`SerieFueraDeOrden`).
+  "Terminar ejercicio" con un toque completa las que faltan con la precarga
+  (`BitacoraRepositorio.terminarCompleto`); manteniéndolo presionado se confirma "Terminar con 2
+  de 4 series" (parcial). En Hoy, tocar la fila abre el ejercicio (también terminado, para
+  corregir) y tocar el círculo lo termina completo; un parcial se ve naranja con "2/4 series".
+  Por qué / decisión (PO): el día es **completo con el 80% de las series objetivo**
+  (`umbralDiaCompleto`, `estadoSesion`); cambia la regla de ENT-90 de Paola. Toca
+  `lib/features/entrenamiento` (Paola).
+  También (pedido del PO al probar): un ejercicio terminado no deja quitar series hasta "Volver a
+  abrir"; la tarjeta de la sesión en Hoy se calcula con las series de hoy ("Sesión sin empezar",
+  "Sesión parcial · 6 de 16 series", "Día completo"); mantener presionado "Seguir entrenando"
+  termina el día como va (`BitacoraRepositorio.terminarDia`); en el editor, un día de descanso sin
+  ejercicios se abre en modo Rutina (toca `pantalla_editor_dia.dart` de Axel). Las fechas del ciclo
+  (Nuevo ciclo, Editar ciclo y rutina con IA) ya no se escriben: se eligen con el componente nuevo
+  `CampoFecha` (calendario en hoja inferior, en español sin paquetes nuevos); el fin empieza vacío.
+  Para el siguiente: usa `CampoFecha` para cualquier fecha que capture el usuario.
+  Sin peso (0 kg) se muestran solo las repeticiones ("10 reps", "3 × 10") en el ejercicio, Hoy,
+  el editor y el calendario; y en el detalle del calendario un ejercicio terminado sin series ya no
+  lleva la palomita verde (toca `pantalla_calendario.dart` de Paola).
+  El color de cada ejercicio (Hoy y detalle del calendario) sale de sus series marcadas, se haya
+  tocado o no "Terminar ejercicio": todas = verde, al menos una = naranja ("1/3 series"), ninguna =
+  pendiente (`EjercicioDelDia.completo`/`parcial`, `EjercicioDelDiaPasado.completo`/`parcial`). Así
+  se puede hacer una serie de cada ejercicio y volver después. Al registrar algo de hoy se refresca también el calendario con
+  `refrescarSesionDeHoy(ref)` (`lib/features/entrenamiento/refrescar_hoy.dart`): úsalo en vez de
+  invalidar los proveedores uno por uno.
 
 * **2026-11-25 · ENT-127, ENT-41 y RN-01 · Pablo · PR #25**
   Saludo según la hora en Hoy ("Buenas noches, Pablo", toca `pantalla_hoy.dart` de Paola); hoja de
