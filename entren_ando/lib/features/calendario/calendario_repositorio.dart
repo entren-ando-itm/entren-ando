@@ -224,12 +224,27 @@ class EjercicioDelDiaPasado {
     required this.completado,
     required this.esSustitucion,
     required this.series,
+    this.seriesObjetivo,
   });
 
   final String nombre;
+
+  /// Se tocó "Terminar ejercicio" (con todas o con menos series).
   final bool completado;
   final bool esSustitucion;
   final List<SerieDelDia> series;
+
+  /// Series de la rutina (null si el ejercicio ya no está en la rutina).
+  final int? seriesObjetivo;
+
+  /// ENT-121: verde con todas las series de la rutina.
+  bool get completo {
+    final objetivo = seriesObjetivo;
+    return objetivo == null ? completado && series.isNotEmpty : series.length >= objetivo;
+  }
+
+  /// ENT-121: naranja si lleva series pero no todas.
+  bool get parcial => !completo && series.isNotEmpty;
 }
 
 /// Lo que se hizo un día: estado, comentario, ejercicios y series.
@@ -283,7 +298,6 @@ final detalleDiaProvider = FutureProvider.family<DetalleDia?, String>((ref, fech
   ''', [idUsuario, sesion['id_sesion']]);
 
   final ejercicios = <String, EjercicioDelDiaPasado>{};
-  final objetivos = <String, int?>{};
   for (final f in filas) {
     final id = f['id_registro'] as String;
     final ejercicio = ejercicios.putIfAbsent(
@@ -293,9 +307,9 @@ final detalleDiaProvider = FutureProvider.family<DetalleDia?, String>((ref, fech
         completado: f['completado'] == 1,
         esSustitucion: f['es_sustitucion'] == 1,
         series: [],
+        seriesObjetivo: f['series_objetivo'] as int?,
       ),
     );
-    objetivos[id] = f['series_objetivo'] as int?;
     if (f['numero_serie'] != null) {
       ejercicio.series.add((
         numero: f['numero_serie'] as int,
@@ -310,16 +324,6 @@ final detalleDiaProvider = FutureProvider.family<DetalleDia?, String>((ref, fech
     comentario: sesion['comentario'] as String?,
     nombreDia: sesion['nombre_dia'] as String?,
     esOverride: sesion['es_override'] == 1,
-    // ENT-121: con todas sus series marcadas también cuenta como hecho,
-    // aunque no se haya tocado "Terminar ejercicio".
-    ejercicios: [
-      for (final MapEntry(key: id, value: e) in ejercicios.entries)
-        EjercicioDelDiaPasado(
-          nombre: e.nombre,
-          completado: e.completado || (objetivos[id] != null && e.series.length >= objetivos[id]!),
-          esSustitucion: e.esSustitucion,
-          series: e.series,
-        ),
-    ],
+    ejercicios: ejercicios.values.toList(),
   );
 });

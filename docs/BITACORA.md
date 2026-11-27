@@ -248,9 +248,10 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Sin peso (0 kg) se muestran solo las repeticiones ("10 reps", "3 × 10") en el ejercicio, Hoy,
   el editor y el calendario; y en el detalle del calendario un ejercicio terminado sin series ya no
   lleva la palomita verde (toca `pantalla_calendario.dart` de Paola).
-  Un ejercicio con todas sus series marcadas cuenta como hecho en Hoy y en el detalle del calendario
-  aunque no se haya tocado "Terminar ejercicio" (también después de "Volver a abrir"); si se quita
-  una serie, ya no. Al registrar algo de hoy se refresca también el calendario con
+  El color de cada ejercicio (Hoy y detalle del calendario) sale de sus series marcadas, se haya
+  tocado o no "Terminar ejercicio": todas = verde, al menos una = naranja ("1/3 series"), ninguna =
+  pendiente (`EjercicioDelDia.completo`/`parcial`, `EjercicioDelDiaPasado.completo`/`parcial`). Así
+  se puede hacer una serie de cada ejercicio y volver después. Al registrar algo de hoy se refresca también el calendario con
   `refrescarSesionDeHoy(ref)` (`lib/features/entrenamiento/refrescar_hoy.dart`): úsalo en vez de
   invalidar los proveedores uno por uno.
 

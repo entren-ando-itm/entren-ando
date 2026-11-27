@@ -256,10 +256,12 @@ class _FilaEjercicio extends StatelessWidget {
   Widget build(BuildContext context) {
     final colores = context.colores;
     final textos = Theme.of(context).textTheme;
-    final hecho = ejercicio.completado;
+    // ENT-121: el color sale de las series marcadas, se haya tocado o no
+    // "Terminar ejercicio": todas = verde, algunas = naranja, ninguna = pendiente.
+    final hecho = ejercicio.completo;
     final parcial = ejercicio.parcial;
     final estado = parcial
-        ? 'Terminado con ${ejercicio.seriesHechas} de ${ejercicio.series} series'
+        ? '${ejercicio.completado ? 'Terminado con' : 'Llevas'} ${ejercicio.seriesHechas} de ${ejercicio.series} series'
         : (hecho ? 'Completado' : (esSiguiente ? 'Sigue' : 'Pendiente'));
 
     return Semantics(
@@ -342,7 +344,7 @@ class _CirculoEstado extends StatelessWidget {
   final bool completado;
   final bool esSiguiente;
 
-  /// Terminado con menos series: naranja con una raya (no solo el color).
+  /// Con algunas series pero no todas: naranja con una raya (no solo el color).
   final bool parcial;
 
   @override

@@ -279,9 +279,12 @@ class _HojaDetalle extends ConsumerWidget {
                           Row(
                             children: [
                               Expanded(child: Text(e.nombre, style: textos.titleMedium)),
-                              // Terminado sin ninguna serie: no se hizo, no va en verde.
-                              if (e.completado && e.series.isNotEmpty)
-                                const Icon(Icons.check_circle_rounded, size: 20, color: ColoresSemaforo.completa),
+                              // ENT-121: verde con todas las series, naranja con algunas
+                              // y nada si no se hizo ninguna.
+                              if (e.completo)
+                                const Icon(Icons.check_circle_rounded, size: 20, color: ColoresSemaforo.completa)
+                              else if (e.parcial)
+                                const Icon(Icons.remove_circle_rounded, size: 20, color: ColoresSemaforo.parcial),
                             ],
                           ),
                           const SizedBox(height: Medidas.espacio1),

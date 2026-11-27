@@ -55,8 +55,12 @@ class EjercicioDelDia {
   /// Series guardadas hoy (ENT-121: "2/4" cuando se terminó parcialmente).
   final int seriesHechas;
 
-  /// Terminado con menos series que las de la rutina.
-  bool get parcial => completado && seriesHechas < series;
+  /// Todas las series de la rutina marcadas: verde (ENT-121).
+  bool get completo => seriesHechas >= series;
+
+  /// Lleva al menos una serie (o se terminó antes) pero le faltan: naranja.
+  /// Sirve también para quien hace una serie de cada ejercicio y vuelve después.
+  bool get parcial => !completo && (seriesHechas > 0 || completado);
 }
 
 /// Un día de la semana que sigue, para las franjas de abajo.
