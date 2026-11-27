@@ -65,7 +65,7 @@ class PantallaRespaldo extends ConsumerWidget {
               ],
             ),
           ),
-          if (sync.mensaje != null && sync.fase != FaseSync.subiendo) ...[
+          if (sync.mensaje != null && sync.fase != FaseSync.subiendo && !sinConfigurar) ...[
             const SizedBox(height: Medidas.espacio3),
             Aviso(
               sync.mensaje!,
@@ -74,8 +74,10 @@ class PantallaRespaldo extends ConsumerWidget {
           ],
           const SizedBox(height: Medidas.espacio5),
           if (sinConfigurar)
-            const Aviso(
-              'Inicia sesión para respaldar tus datos. Mientras, todo se guarda en tu celular.',
+            Aviso(
+              sync.fase == FaseSync.apagada
+                  ? 'Falta conectar la app con la nube (archivo .env). Mientras, todo se guarda en tu celular.'
+                  : 'Inicia sesión para respaldar tus datos. Mientras, todo se guarda en tu celular.',
             )
           else
             BotonConRed(

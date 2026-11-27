@@ -13,6 +13,8 @@ import '../../../core/db/usuario_actual.dart';
 ///   `serie`. Todo en la base local cifrada, así que funciona en modo avión.
 /// * ENT-50 / ENT-90: "Terminar ejercicio", el estado de la sesión (completa o
 ///   parcial), hora_inicio, hora_fin y el comentario del día.
+/// * ENT-59: "Cambiar solo hoy" por una alternativa. La precarga usa el
+///   historial de la alternativa y la plantilla no cambia.
 /// * ENT-88: cada serie trae el peso y las repeticiones de la última vez que se
 ///   hizo ese `id_ejercicio`; si nunca se hizo, los objetivos de la rutina.
 ///
@@ -74,6 +76,9 @@ class EjercicioBitacora {
     this.grupoMuscular = '',
     this.tipoMovimiento = '',
     this.equipo,
+    this.idEjercicioOriginal,
+    this.nombreOriginal,
+    this.esSustitucion = false,
   });
 
   final String idProgramado;
@@ -99,6 +104,13 @@ class EjercicioBitacora {
   final String grupoMuscular;
   final String tipoMovimiento;
   final String? equipo;
+
+  /// ENT-59: el ejercicio de la rutina cuando hoy se cambió por una alternativa.
+  final int? idEjercicioOriginal;
+  final String? nombreOriginal;
+
+  /// true si hoy se está haciendo una alternativa en lugar del original.
+  final bool esSustitucion;
 
   int get seriesGuardadas => series.where((s) => s.guardada).length;
 }
@@ -145,6 +157,19 @@ List<SerieBitacora> armarSeries({
   ];
 }
 
+/// Una alternativa para "Cambiar solo hoy" (ENT-104).
+class AlternativaEjercicio {
+  const AlternativaEjercicio({required this.idEjercicio, required this.nombre, this.equipo});
+
+  final int idEjercicio;
+
+  /// Alias del usuario o nombre oficial.
+  final String nombre;
+
+  /// Nombre del equipo; null = peso corporal.
+  final String? equipo;
+}
+
 /// La sesión de hoy: estado, comentario y horas.
 class SesionDeHoy {
   const SesionDeHoy({required this.estado, this.comentario, this.horaInicio, this.horaFin});
@@ -172,25 +197,26 @@ class BitacoraRepositorio {
 
   /// El ejercicio de hoy con sus series guardadas o precargadas (ENT-88).
   Future<EjercicioBitacora?> ejercicio(String idProgramado) async {
+    // La plantilla (series, repeticiones y peso objetivo) nunca cambia.
     final filas = await _bd.rawQuery('''
       SELECT ep.id_programado, ep.id_ejercicio, ep.orden, ep.series_objetivo, ep.reps_objetivo,
-             ep.peso_objetivo_kg, ep.descanso_seg, ep.trabajo_seg,
-             COALESCE(ue.nombre_alias, e.nombre_oficial) AS nombre,
-             e.grupo_muscular, e.tipo_movimiento, eq.nombre AS equipo
+             ep.peso_objetivo_kg, ep.descanso_seg, ep.trabajo_seg
       FROM ejercicio_programado ep
-      JOIN ejercicio e ON e.id_ejercicio = ep.id_ejercicio
-      LEFT JOIN equipo eq ON eq.id_equipo = e.id_equipo
-      LEFT JOIN usuario_ejercicio ue
-        ON ue.id_ejercicio = ep.id_ejercicio AND ue.id_usuario = ? AND ue.eliminado = 0
       WHERE ep.id_programado = ? AND ep.eliminado = 0
-    ''', [_idUsuario, idProgramado]);
+    ''', [idProgramado]);
     if (filas.isEmpty) return null;
     final ep = filas.first;
-    final idEjercicio = ep['id_ejercicio'] as int;
+    final idOriginal = ep['id_ejercicio'] as int;
     final hoy = Fechas.hoy();
 
-    // Lo que ya se guardó hoy para este ejercicio de la rutina.
+    // Lo que ya se guardó hoy. Si hoy se cambió por una alternativa (ENT-59),
+    // el registro trae el id_ejercicio de la alternativa.
     final registroHoy = await _registroDeHoy(_bd, idProgramado, hoy);
+    final idEjercicio = registroHoy?.idEjercicio ?? idOriginal;
+    final catalogo = await _datosEjercicio(_bd, idEjercicio);
+    final nombreOriginal = idEjercicio == idOriginal
+        ? catalogo['nombre'] as String
+        : (await _datosEjercicio(_bd, idOriginal))['nombre'] as String;
     final seriesHoy = <int, ({double pesoKg, int repeticiones})>{};
     if (registroHoy != null) {
       final filasHoy = await _bd.rawQuery('''
@@ -237,16 +263,19 @@ class BitacoraRepositorio {
     return EjercicioBitacora(
       idProgramado: idProgramado,
       idEjercicio: idEjercicio,
-      nombre: ep['nombre'] as String,
+      nombre: catalogo['nombre'] as String,
+      idEjercicioOriginal: idOriginal,
+      nombreOriginal: nombreOriginal,
+      esSustitucion: idEjercicio != idOriginal,
       orden: ep['orden'] as int,
       descansoSeg: ep['descanso_seg'] as int,
       trabajoSeg: ep['trabajo_seg'] as int?,
       completado: registroHoy?.completado ?? false,
       fechaUltimaVez: fechaUltimaVez,
       ultimaVez: seriesUltimaVez,
-      grupoMuscular: ep['grupo_muscular'] as String,
-      tipoMovimiento: ep['tipo_movimiento'] as String,
-      equipo: ep['equipo'] as String?,
+      grupoMuscular: catalogo['grupo_muscular'] as String,
+      tipoMovimiento: catalogo['tipo_movimiento'] as String,
+      equipo: catalogo['equipo'] as String?,
       series: armarSeries(
         seriesObjetivo: ep['series_objetivo'] as int,
         repsObjetivo: ep['reps_objetivo'] as int,
@@ -412,14 +441,98 @@ class BitacoraRepositorio {
   }
 
 
+  /// Alternativas de un ejercicio de la rutina, ordenadas por prioridad (ENT-104).
+  /// Lista vacía = no hay alternativas y el botón "Cambiar solo hoy" no aparece.
+  Future<List<AlternativaEjercicio>> alternativas(String idProgramado) async {
+    final filas = await _bd.rawQuery('''
+      SELECT a.id_ejercicio, a.prioridad,
+             COALESCE(ue.nombre_alias, e.nombre_oficial) AS nombre,
+             eq.nombre AS equipo
+      FROM alternativa_ejercicio a
+      JOIN ejercicio e ON e.id_ejercicio = a.id_ejercicio
+      LEFT JOIN equipo eq ON eq.id_equipo = e.id_equipo
+      LEFT JOIN usuario_ejercicio ue
+        ON ue.id_ejercicio = a.id_ejercicio AND ue.id_usuario = ? AND ue.eliminado = 0
+      WHERE a.id_programado = ? AND a.eliminado = 0
+      ORDER BY a.prioridad, nombre
+    ''', [_idUsuario, idProgramado]);
+    return [
+      for (final f in filas)
+        AlternativaEjercicio(
+          idEjercicio: f['id_ejercicio'] as int,
+          nombre: f['nombre'] as String,
+          equipo: f['equipo'] as String?,
+        ),
+    ];
+  }
+
+  /// Cambia el ejercicio **solo por hoy** (ENT-105). Guarda en el registro de hoy
+  /// el id_ejercicio de la alternativa con es_sustitucion = 1 y el id_programado
+  /// del original. Con el id del original, vuelve al ejercicio de la rutina.
+  ///
+  /// Nunca modifica ejercicio_programado: mañana y la plantilla siguen igual.
+  /// Si ya hay series guardadas hoy, no se cambia (son de otro ejercicio).
+  Future<void> sustituir({required String idProgramado, required int idEjercicio}) async {
+    await _bd.transaction((txn) async {
+      final programados = await txn.rawQuery('''
+        SELECT id_ejercicio FROM ejercicio_programado
+        WHERE id_programado = ? AND eliminado = 0
+      ''', [idProgramado]);
+      if (programados.isEmpty) throw StateError('El ejercicio ya no está en la rutina');
+      final idOriginal = programados.first['id_ejercicio'] as int;
+
+      if (idEjercicio != idOriginal) {
+        final valida = await txn.rawQuery('''
+          SELECT 1 FROM alternativa_ejercicio
+          WHERE id_programado = ? AND id_ejercicio = ? AND eliminado = 0
+        ''', [idProgramado, idEjercicio]);
+        if (valida.isEmpty) throw ArgumentError('No es una alternativa de este ejercicio');
+      }
+
+      final escritura = EscrituraLocal(txn);
+      final idRegistro = await _asegurarRegistro(txn, escritura, idProgramado);
+      final series = await txn.rawQuery(
+        'SELECT COUNT(*) AS n FROM serie WHERE id_registro = ? AND eliminado = 0',
+        [idRegistro],
+      );
+      if ((series.first['n'] as int) > 0) {
+        throw StateError('Quita las series guardadas antes de cambiar el ejercicio');
+      }
+      await escritura.actualizar(
+        'registro_ejercicio',
+        {
+          'id_ejercicio': idEjercicio,
+          'es_sustitucion': idEjercicio == idOriginal ? 0 : 1,
+        },
+        where: 'id_registro = ?',
+        whereArgs: [idRegistro],
+      );
+    });
+  }
+
+  /// Nombre (alias), grupo, tipo y equipo de un ejercicio del catálogo.
+  Future<Map<String, Object?>> _datosEjercicio(DatabaseExecutor bd, int idEjercicio) async {
+    final filas = await bd.rawQuery('''
+      SELECT COALESCE(ue.nombre_alias, e.nombre_oficial) AS nombre,
+             e.grupo_muscular, e.tipo_movimiento, eq.nombre AS equipo
+      FROM ejercicio e
+      LEFT JOIN equipo eq ON eq.id_equipo = e.id_equipo
+      LEFT JOIN usuario_ejercicio ue
+        ON ue.id_ejercicio = e.id_ejercicio AND ue.id_usuario = ? AND ue.eliminado = 0
+      WHERE e.id_ejercicio = ?
+    ''', [_idUsuario, idEjercicio]);
+    if (filas.isEmpty) throw StateError('El ejercicio $idEjercicio no está en el catálogo');
+    return filas.first;
+  }
+
   /// Registro de hoy para este ejercicio de la rutina, si ya existe.
-  Future<({String id, bool completado})?> _registroDeHoy(
+  Future<({String id, bool completado, int idEjercicio, bool esSustitucion})?> _registroDeHoy(
     DatabaseExecutor bd,
     String idProgramado,
     String hoy,
   ) async {
     final filas = await bd.rawQuery('''
-      SELECT r.id_registro, r.completado
+      SELECT r.id_registro, r.completado, r.id_ejercicio, r.es_sustitucion
       FROM registro_ejercicio r
       JOIN sesion_entrenamiento s ON s.id_sesion = r.id_sesion
       WHERE s.id_usuario = ? AND s.fecha = ? AND s.eliminado = 0
@@ -428,7 +541,13 @@ class BitacoraRepositorio {
       LIMIT 1
     ''', [_idUsuario, hoy, idProgramado]);
     if (filas.isEmpty) return null;
-    return (id: filas.first['id_registro'] as String, completado: filas.first['completado'] == 1);
+    final f = filas.first;
+    return (
+      id: f['id_registro'] as String,
+      completado: f['completado'] == 1,
+      idEjercicio: f['id_ejercicio'] as int,
+      esSustitucion: f['es_sustitucion'] == 1,
+    );
   }
 
   /// Devuelve el id del registro de hoy; crea la sesión y el registro si faltan.
@@ -505,6 +624,13 @@ final bitacoraRepositorioProvider = FutureProvider<BitacoraRepositorio?>((ref) a
 final sesionDeHoyProvider = FutureProvider<SesionDeHoy?>((ref) async {
   final repositorio = await ref.watch(bitacoraRepositorioProvider.future);
   return repositorio?.sesionDeHoy();
+});
+
+/// Alternativas de un ejercicio de la rutina (vacía = sin botón "Cambiar solo hoy").
+final alternativasProvider =
+    FutureProvider.family<List<AlternativaEjercicio>, String>((ref, idProgramado) async {
+  final repositorio = await ref.watch(bitacoraRepositorioProvider.future);
+  return repositorio?.alternativas(idProgramado) ?? const [];
 });
 
 final ejercicioBitacoraProvider =

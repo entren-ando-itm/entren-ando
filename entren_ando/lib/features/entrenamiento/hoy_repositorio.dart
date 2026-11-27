@@ -35,6 +35,7 @@ class EjercicioDelDia {
   final int orden;
 
   /// Alias del usuario si tiene uno; si no, el nombre oficial (RF-05).
+  /// Si hoy se cambió por una alternativa (ENT-59), el de la alternativa.
   final String nombre;
   final int series;
   final int repeticiones;
@@ -166,12 +167,21 @@ final diaDeHoyProvider = FutureProvider<DiaDeHoy?>((ref) async {
                  AND r.id_programado = ep.id_programado AND r.completado = 1
              ) AS completado
       FROM ejercicio_programado ep
-      JOIN ejercicio e ON e.id_ejercicio = ep.id_ejercicio
+      -- ENT-59: si hoy se cambió por una alternativa, se muestra la alternativa.
+      JOIN ejercicio e ON e.id_ejercicio = COALESCE((
+        SELECT r2.id_ejercicio
+        FROM sesion_entrenamiento s2
+        JOIN registro_ejercicio r2 ON r2.id_sesion = s2.id_sesion AND r2.eliminado = 0
+        WHERE s2.id_usuario = ? AND s2.fecha = ? AND s2.eliminado = 0
+          AND r2.id_programado = ep.id_programado
+        ORDER BY r2.creado_en
+        LIMIT 1
+      ), ep.id_ejercicio)
       LEFT JOIN usuario_ejercicio ue
-        ON ue.id_ejercicio = ep.id_ejercicio AND ue.id_usuario = ? AND ue.eliminado = 0
+        ON ue.id_ejercicio = e.id_ejercicio AND ue.id_usuario = ? AND ue.eliminado = 0
       WHERE ep.id_dia = ? AND ep.eliminado = 0
       ORDER BY ep.orden
-    ''', [idUsuario, Fechas.hoy(), idUsuario, diaHoy['id_dia']]);
+    ''', [idUsuario, Fechas.hoy(), idUsuario, Fechas.hoy(), idUsuario, diaHoy['id_dia']]);
 
     ejercicios = [
       for (final f in filas)

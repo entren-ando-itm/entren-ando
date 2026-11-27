@@ -33,7 +33,10 @@ Reglas:
   nunca se borran filas locales.
 * El helper `EscrituraLocal` (`lib/core/db`) ya marca `pendiente_sync = 1` y `actualizado_en` en cada
   guardado (ENT-78): escribe siempre con él y tu cambio se sube solo.
-* No se suben los catálogos. `solicitud_ia` y `evento_pago` los crea el servidor; de `feedback_ia`
+* ENT-52: el servidor controla `usuario.id_plan`. El celular omite esa columna al subir el usuario
+  y consulta su fila en cada bajada, incluso si el perfil tiene la misma marca de tiempo.
+  `suscripcion` y `evento_pago` solo se descargan.
+* No se suben los catálogos. `solicitud_ia` la crea el servidor; de `feedback_ia`
   solo se sube `leido`.
 * Usa la sesión del usuario en Supabase: la seguridad la da RLS. Nunca la service_role.
 * Si la sesión de Supabase no es la del usuario de la app (`usuarioActualIdProvider`), no sube nada.

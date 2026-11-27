@@ -103,9 +103,9 @@ void main() {
       await tester.tap(find.text('CREAR CICLO'));
       await tester.pumpAndSettle();
 
-      // Criterio 3: pide archivar el actual o ver Premium.
+      // RN-01 precisada: en Gratuito no se puede archivar para crear otro; solo Premium.
       expect(find.text('LÍMITE DE TU PLAN'), findsOneWidget);
-      expect(find.text('Archivar «Semestre agosto-diciembre»'), findsOneWidget);
+      expect(find.text('Archivar «Semestre agosto-diciembre»'), findsNothing);
       expect(find.text('Ver Premium'), findsOneWidget);
     });
 

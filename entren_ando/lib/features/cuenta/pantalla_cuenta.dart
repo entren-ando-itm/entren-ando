@@ -104,7 +104,7 @@ class _PantallaCuentaState extends ConsumerState<PantallaCuenta> {
     if (mounted) setState(() => _saliendo = false);
   }
 
-  /// Premium (ENT-52) y Eliminar cuenta (ENT-51) llegan en el Sprint 3.
+  /// Aviso provisional de Eliminar cuenta (ENT-51).
   Future<void> _muyPronto(String titulo, String detalle) {
     return mostrarHojaInferior<void>(
       context: context,
@@ -168,7 +168,7 @@ class _PantallaCuentaState extends ConsumerState<PantallaCuenta> {
               FilaAjuste(
                 titulo: 'Premium',
                 icono: Icons.star_outline_rounded,
-                alTocar: () => _muyPronto('Premium', 'La prueba de Premium llega en el Sprint 3 (ENT-52).'),
+                alTocar: () => context.push('/perfil/premium'),
               ),
               FilaAjuste(
                 titulo: 'Eliminar mi cuenta y mis datos',

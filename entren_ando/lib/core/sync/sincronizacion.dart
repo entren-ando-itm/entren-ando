@@ -99,8 +99,20 @@ class Sincronizacion extends Notifier<EstadoSync> {
       if (ahora && antes == false) sincronizar();
       if (!ahora) _poner(const EstadoSync(fase: FaseSync.sinRed, mensaje: 'Sin conexión: se sube al volver la red.'));
     });
+    // Supabase avisa signedIn un instante antes de que la app guarde el
+    // usuario (Cuenta.iniciarSesion); por eso también se sincroniza cuando
+    // cambia el usuario de la app.
+    ref.listen<String?>(usuarioActualIdProvider, (antes, ahora) {
+      if (ahora != null && ahora != antes) sincronizar();
+    });
     _sesion = cliente.auth.onAuthStateChange.listen((cambio) {
-      if (cambio.event == AuthChangeEvent.signedIn) sincronizar();
+      // initialSession llega cuando Supabase termina de recuperar la sesión
+      // guardada al abrir la app (puede ser después del primer intento).
+      if (cambio.event == AuthChangeEvent.signedIn ||
+          (cambio.event == AuthChangeEvent.initialSession && cambio.session != null) ||
+          (cambio.event == AuthChangeEvent.tokenRefreshed && state.fase == FaseSync.sinSesion)) {
+        sincronizar();
+      }
       if (cambio.event == AuthChangeEvent.signedOut) {
         _poner(const EstadoSync(fase: FaseSync.sinSesion, mensaje: 'Sin sesión en la nube.'));
       }

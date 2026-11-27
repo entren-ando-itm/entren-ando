@@ -99,17 +99,33 @@ class EjercicioProgramado {
   final int alternativas;
 }
 
-/// Cuántos ciclos activos permite el plan del usuario y cuántos tiene.
+/// Cuántos ciclos permite el plan del usuario y cuántos tiene.
+///
+/// RN-01 precisada por el PO (25 de noviembre): en Gratuito el límite cuenta
+/// TODOS los ciclos (activos y archivados), así no se puede archivar y
+/// reactivar para tener varias rutinas. Se edita el ciclo que ya se tiene.
+/// Los ciclos que sobran al dejar Premium se quedan archivados solo para
+/// consultarlos.
 class LimiteCiclos {
-  const LimiteCiclos({required this.plan, required this.activos, this.maximo});
+  const LimiteCiclos({required this.plan, required this.activos, this.maximo, int? total})
+      : total = total ?? activos;
 
   final String plan;
   final int activos;
+
+  /// Ciclos sin borrar (activos y archivados).
+  final int total;
 
   /// null = ilimitado (Premium). Sale de `plan.max_ciclos_activos`.
   final int? maximo;
 
   bool get puedeActivarOtro => maximo == null || activos < maximo!;
+
+  /// Crear un ciclo nuevo: en Gratuito solo si aún no tiene ninguno.
+  bool get puedeCrearOtro => maximo == null || total < maximo!;
+
+  /// Reactivar un archivado: en Gratuito solo si es su único ciclo.
+  bool get puedeReactivar => maximo == null || (total <= maximo! && activos < maximo!);
 }
 
 /// Se lanza al activar un ciclo cuando el plan ya no permite otro (RN-01).
@@ -232,7 +248,9 @@ class RutinasRepositorio {
     final filas = await bd.rawQuery('''
       SELECT p.nombre, p.max_ciclos_activos,
              (SELECT COUNT(*) FROM ciclo_rutina c
-              WHERE c.id_usuario = u.id_usuario AND c.estado = 'activo' AND c.eliminado = 0) AS activos
+              WHERE c.id_usuario = u.id_usuario AND c.estado = 'activo' AND c.eliminado = 0) AS activos,
+             (SELECT COUNT(*) FROM ciclo_rutina c
+              WHERE c.id_usuario = u.id_usuario AND c.eliminado = 0) AS total
       FROM usuario u
       JOIN plan p ON p.id_plan = u.id_plan
       WHERE u.id_usuario = ? AND u.eliminado = 0
@@ -242,6 +260,7 @@ class RutinasRepositorio {
     return LimiteCiclos(
       plan: f['nombre'] as String,
       activos: f['activos'] as int,
+      total: f['total'] as int,
       maximo: f['max_ciclos_activos'] as int?,
     );
   }
@@ -260,10 +279,9 @@ class RutinasRepositorio {
     if (error != null) throw ArgumentError(error);
 
     return _bd.transaction((txn) async {
-      if (activar) {
-        final limite = await _limite(txn);
-        if (!limite.puedeActivarOtro) throw LimiteCiclosAlcanzado(limite);
-      }
+      final limite = await _limite(txn);
+      if (!limite.puedeCrearOtro) throw LimiteCiclosAlcanzado(limite);
+      if (activar && !limite.puedeActivarOtro) throw LimiteCiclosAlcanzado(limite);
       final escritura = EscrituraLocal(txn);
       final idCiclo = (await escritura.insertar('ciclo_rutina', {
         'id_usuario': _idUsuario,
@@ -337,7 +355,7 @@ class RutinasRepositorio {
       if (actual.isEmpty) throw StateError('No existe el ciclo.');
       if (actual.first['estado'] == 'activo') return;
       final limite = await _limite(txn);
-      if (!limite.puedeActivarOtro) throw LimiteCiclosAlcanzado(limite);
+      if (!limite.puedeReactivar) throw LimiteCiclosAlcanzado(limite);
       await escritura.actualizar(
         'ciclo_rutina',
         {'estado': 'activo'},
