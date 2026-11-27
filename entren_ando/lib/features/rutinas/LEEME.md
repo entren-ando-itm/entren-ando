@@ -8,7 +8,7 @@ Dueño: Axel. Historias: ENT-47 (ciclos editables con límite del plan gratuito)
 | Archivo | Para qué |
 | --- | --- |
 | `rutinas_repositorio.dart` | `RutinasRepositorio`: ciclos, sus 7 días y los ejercicios programados. `ValidarRutina` con las reglas de los CHECK |
-| `rutinas_proveedores.dart` | Proveedores de Riverpod, `refrescarRutinas(ref)` y `FechaCiclo` (dd/mm/aaaa ↔ ISO) |
+| `rutinas_proveedores.dart` | Proveedores de Riverpod, `refrescarRutinas(ref)` y `FechaCiclo` (fechas largas y rango del ciclo; las fechas se eligen con `CampoFecha`) |
 | `hoja_limite_ciclos.dart` | Hoja del límite RN-01: archivar un ciclo activo o ver Premium |
 | `pantalla_ciclos.dart` | Mis ciclos (activos y archivados) y la hoja para crear o editar un ciclo |
 | `pantalla_ciclo.dart` | Un ciclo con sus 7 días; archivar o reactivar |

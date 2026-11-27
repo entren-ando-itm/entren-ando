@@ -196,6 +196,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `EscrituraLocal` (`insertar`, `actualizar`, `marcarEliminado`) | `lib/core/db/escritura_local.dart` | Toda escritura: llena fechas, UUID y `pendiente_sync` |
 | `Fechas.hoy()`, `Fechas.ahoraIso()`, `Fechas.hoyComoFecha()` | `lib/core/db/fechas.dart` | Fechas en hora de CDMX |
 | `import 'package:entren_ando/core/diseno.dart'` | `lib/core/tema`, `lib/core/componentes` | Tema, medidas y todos los componentes |
+| `CampoFecha` | `lib/core/componentes/fechas.dart` | Elegir una fecha en un calendario (ISO 'aaaa-mm-dd'), con `opcional` y `desde` |
 | `hayRedProvider` y `ref.read(hayRedProvider.notifier).revisar()` | `lib/core/conectividad/conectividad.dart` | Saber si hay internet de verdad y reaccionar cuando vuelve la red (ENT-44) |
 | `BotonConRed` | `lib/core/conectividad/boton_con_red.dart` | Botones que necesitan internet |
 | `ClienteSupabase.cliente` | `lib/features/nube/cliente_supabase.dart` | El cliente de Supabase (null si no hay `.env`). ENT-41 inicia sesión con él |
@@ -236,6 +237,14 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Por qué / decisión (PO): el día es **completo con el 80% de las series objetivo**
   (`umbralDiaCompleto`, `estadoSesion`); cambia la regla de ENT-90 de Paola. Toca
   `lib/features/entrenamiento` (Paola).
+  También (pedido del PO al probar): un ejercicio terminado no deja quitar series hasta "Volver a
+  abrir"; la tarjeta de la sesión en Hoy se calcula con las series de hoy ("Sesión sin empezar",
+  "Sesión parcial · 6 de 16 series", "Día completo"); mantener presionado "Seguir entrenando"
+  termina el día como va (`BitacoraRepositorio.terminarDia`); en el editor, un día de descanso sin
+  ejercicios se abre en modo Rutina (toca `pantalla_editor_dia.dart` de Axel). Las fechas del ciclo
+  (Nuevo ciclo, Editar ciclo y rutina con IA) ya no se escriben: se eligen con el componente nuevo
+  `CampoFecha` (calendario en hoja inferior, en español sin paquetes nuevos); el fin empieza vacío.
+  Para el siguiente: usa `CampoFecha` para cualquier fecha que capture el usuario.
 
 * **2026-11-25 · ENT-127, ENT-41 y RN-01 · Pablo · PR #25**
   Saludo según la hora en Hoy ("Buenas noches, Pablo", toca `pantalla_hoy.dart` de Paola); hoja de

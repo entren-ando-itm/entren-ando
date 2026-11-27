@@ -122,26 +122,26 @@ class _VistaPrevia extends ConsumerStatefulWidget {
 class _VistaPreviaState extends ConsumerState<_VistaPrevia> {
   final GlobalKey<FormState> _formulario = GlobalKey<FormState>();
   late final TextEditingController _nombre = TextEditingController(text: widget.propuesta.nombreCiclo);
-  late final TextEditingController _inicio = TextEditingController(text: FechaCiclo.aCampo(RutinasRepositorio.hoy()));
-  late final TextEditingController _fin =
-      TextEditingController(text: FechaCiclo.aCampo(FechaCiclo.finSugerido(RutinasRepositorio.hoy())));
+  String _inicio = RutinasRepositorio.hoy();
+
+  /// El fin es opcional: empieza vacío.
+  String? _fin;
   bool _guardando = false;
   String? _error;
 
   @override
   void dispose() {
     _nombre.dispose();
-    _inicio.dispose();
-    _fin.dispose();
     super.dispose();
   }
 
-  String? _validarFin(String? texto) {
-    if ((texto ?? '').trim().isEmpty) return null;
-    final fin = FechaCiclo.deCampo(texto);
-    if (fin == null) return 'Escribe la fecha como 30/06/2027 o déjala vacía.';
-    final inicio = FechaCiclo.deCampo(_inicio.text);
-    return inicio == null ? null : ValidarRutina.fechas(inicio, fin);
+  void _cambiarInicio(String inicio) {
+    setState(() {
+      _inicio = inicio;
+      // Si el fin quedó antes del nuevo inicio, se quita para elegirlo otra vez.
+      final fin = _fin;
+      if (fin != null && fin.compareTo(inicio) < 0) _fin = null;
+    });
   }
 
   Future<void> _editarDia(DiaPropuesto dia) async {
@@ -155,6 +155,11 @@ class _VistaPreviaState extends ConsumerState<_VistaPrevia> {
     final propuesta = widget.propuesta..nombreCiclo = _nombre.text.trim();
     if (propuesta.diasEntrenamiento == 0) {
       setState(() => _error = 'La rutina no tiene ningún día con ejercicios.');
+      return;
+    }
+    final errorFechas = ValidarRutina.fechas(_inicio, _fin);
+    if (errorFechas != null) {
+      setState(() => _error = errorFechas);
       return;
     }
     final repositorio = await ref.read(rutinaIaRepositorioProvider.future);
@@ -178,8 +183,8 @@ class _VistaPreviaState extends ConsumerState<_VistaPrevia> {
       }
       final idCiclo = await repositorio.guardar(
         propuesta,
-        fechaInicio: FechaCiclo.deCampo(_inicio.text)!,
-        fechaFin: _fin.text.trim().isEmpty ? null : FechaCiclo.deCampo(_fin.text),
+        fechaInicio: _inicio,
+        fechaFin: _fin,
         archivarAntes: archivar,
       );
       refrescarRutinas(ref);
@@ -217,33 +222,24 @@ class _VistaPreviaState extends ConsumerState<_VistaPrevia> {
           CampoTexto(
             etiqueta: 'Nombre del ciclo',
             controlador: _nombre,
-            accionTeclado: TextInputAction.next,
+            accionTeclado: TextInputAction.done,
             validar: ValidarRutina.nombre,
           ),
           const SizedBox(height: Medidas.espacio4),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: CampoTexto(
-                  etiqueta: 'Inicio',
-                  controlador: _inicio,
-                  pista: 'dd/mm/aaaa',
-                  teclado: TextInputType.datetime,
-                  validar: (t) => FechaCiclo.deCampo(t) == null ? 'Escribe la fecha como 24/11/2026.' : null,
-                ),
-              ),
-              const SizedBox(width: Medidas.espacio3),
-              Expanded(
-                child: CampoTexto(
-                  etiqueta: 'Fin (opcional)',
-                  controlador: _fin,
-                  pista: 'dd/mm/aaaa',
-                  teclado: TextInputType.datetime,
-                  validar: _validarFin,
-                ),
-              ),
-            ],
+          CampoFecha(
+            etiqueta: 'Inicio',
+            valor: _inicio,
+            alCambiar: (fecha) {
+              if (fecha != null) _cambiarInicio(fecha);
+            },
+          ),
+          const SizedBox(height: Medidas.espacio4),
+          CampoFecha(
+            etiqueta: 'Fin (opcional)',
+            valor: _fin,
+            opcional: true,
+            desde: _inicio,
+            alCambiar: (fecha) => setState(() => _fin = fecha),
           ),
           const SizedBox(height: Medidas.espacio5),
           const EtiquetaSeccion('Semana · toca un día para editarlo'),

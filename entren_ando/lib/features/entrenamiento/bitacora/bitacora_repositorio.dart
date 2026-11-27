@@ -354,6 +354,9 @@ class BitacoraRepositorio {
     await _bd.transaction((txn) async {
       final registro = await _registroDeHoy(txn, idProgramado, Fechas.hoy());
       if (registro == null) return;
+      if (registro.completado) {
+        throw const SerieFueraDeOrden('Vuelve a abrir el ejercicio para quitar series.');
+      }
       // ENT-121: solo la última marcada, para no dejar huecos.
       final guardadas = await _numerosGuardados(txn, registro.id);
       if (guardadas.isEmpty) return;
@@ -399,6 +402,27 @@ class BitacoraRepositorio {
         where: 'id_registro = ?',
         whereArgs: [idRegistro],
       );
+      await _recalcularSesion(txn, escritura);
+    });
+  }
+
+  /// "Terminar la sesión de hoy así como está" (mantener presionado "Seguir
+  /// entrenando", ENT-121): marca como terminados los ejercicios que faltan,
+  /// solo con las series que ya tenían. El día queda completo o parcial según
+  /// la regla del 80% ([estadoSesion]). Todo en una transacción.
+  Future<void> terminarDia(List<String> idsProgramados) async {
+    if (idsProgramados.isEmpty) return;
+    await _bd.transaction((txn) async {
+      final escritura = EscrituraLocal(txn);
+      for (final idProgramado in idsProgramados) {
+        final idRegistro = await _asegurarRegistro(txn, escritura, idProgramado);
+        await escritura.actualizar(
+          'registro_ejercicio',
+          {'completado': 1},
+          where: 'id_registro = ? AND completado = 0',
+          whereArgs: [idRegistro],
+        );
+      }
       await _recalcularSesion(txn, escritura);
     });
   }

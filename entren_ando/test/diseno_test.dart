@@ -2,6 +2,7 @@ import 'package:entren_ando/core/componentes/galeria_componentes.dart';
 import 'package:entren_ando/core/diseno.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 /// Pruebas del diseño (no necesitan emulador):
 ///   flutter test
@@ -9,6 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// La galería dibuja todos los componentes; si alguno se sale de su espacio
 /// o truena, la prueba falla.
 void main() {
+  setUpAll(() => initializeDateFormatting('es'));
+
   final temas = {
     'claro': TemaEntrenAndo.claro(),
     'oscuro': TemaEntrenAndo.oscuro(),
@@ -31,6 +34,49 @@ void main() {
       expect(find.text('Completo'), findsWidgets);
       expect(find.text('CANCELAR'), findsNothing);
       expect(find.text('Cancelar'), findsOneWidget);
+    });
+
+    testWidgets('CampoFecha abre el calendario y elige un día (${entrada.key})', (tester) async {
+      String? elegida;
+      await tester.pumpWidget(MaterialApp(
+        theme: entrada.value,
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => CampoFecha(
+              etiqueta: 'Fin (opcional)',
+              valor: elegida,
+              opcional: true,
+              desde: '2026-11-10',
+              alCambiar: (fecha) => setState(() => elegida = fecha),
+            ),
+          ),
+        ),
+      ));
+      expect(find.text('Sin fecha'), findsOneWidget);
+
+      await tester.tap(find.text('Sin fecha'));
+      await tester.pumpAndSettle();
+      // Abre en el mes de "desde" si todavía no llega; si no, en el mes actual.
+      // Navega a noviembre de 2026 para que la prueba no dependa del día en que corre.
+      while (find.text('NOVIEMBRE 2026').evaluate().isEmpty) {
+        final hoy = DateTime.now();
+        final antes = hoy.isAfter(DateTime(2026, 11, 30));
+        await tester.tap(find.byTooltip(antes ? 'Mes anterior' : 'Mes siguiente'));
+        await tester.pumpAndSettle();
+      }
+      // El 5 es antes de "desde": no se puede elegir.
+      await tester.tap(find.text('5'));
+      await tester.pumpAndSettle();
+      expect(elegida, isNull);
+
+      await tester.tap(find.text('20'));
+      await tester.pumpAndSettle();
+      expect(elegida, '2026-11-20');
+      expect(find.text('viernes 20 de noviembre de 2026'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Quitar fecha'));
+      await tester.pump();
+      expect(elegida, isNull);
     });
   }
 

@@ -164,6 +164,7 @@ import 'package:entren_ando/core/diseno.dart';
 | `BotonPrincipal`, `BotonSecundario` | Botones de 56 de alto (60 con `grande: true`) |
 | `BotonChico`, `BotonTexto`, `BotonCircular` | Acciones chicas, acciones de texto y Volver/Cerrar |
 | `CampoTexto`, `Casilla` | Campos sin borde (con contraseña) y casilla para aceptar |
+| `CampoFecha` | Fecha que se elige en un calendario (no se escribe); `opcional` agrega "Dejar sin fecha" |
 | `Aviso`, `Aviso.sinRed`, `InsigniaSinRed` | Avisos y el estado sin conexión |
 | `CirculoDia`, `PuntoSemaforo`, `EstadoDia` | Días del calendario semáforo |
 | `BarraProgreso`, `BarraSegmentos`, `ElementoLeyenda`, `MarcaColor` | Avances, macros y leyendas |

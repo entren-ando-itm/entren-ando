@@ -48,31 +48,10 @@ void refrescarRutinas(WidgetRef ref) {
   ref.invalidate(diaDeHoyProvider);
 }
 
-/// Fechas para mostrar y capturar: '2026-11-17' ↔ '17/11/2026' y "17 de noviembre de 2026".
+/// Fechas del ciclo para mostrar: '2026-11-17' → "17 de noviembre de 2026".
 abstract final class FechaCiclo {
-  static final DateFormat _corta = DateFormat('dd/MM/yyyy');
-
-  static String aCampo(String iso) => _corta.format(DateTime.parse(iso));
-
-  /// Convierte 'dd/mm/aaaa' a 'aaaa-mm-dd' (null si no es una fecha real).
-  static String? deCampo(String? texto) {
-    final partes = (texto ?? '').trim().split(RegExp(r'[/\-.]'));
-    if (partes.length != 3) return null;
-    final dia = int.tryParse(partes[0]);
-    final mes = int.tryParse(partes[1]);
-    final anio = int.tryParse(partes[2]);
-    if (dia == null || mes == null || anio == null || anio < 2000 || anio > 2100) return null;
-    final fecha = DateTime(anio, mes, dia);
-    if (fecha.day != dia || fecha.month != mes) return null; // por ejemplo, 31/02
-    return DateFormat('yyyy-MM-dd').format(fecha);
-  }
-
   static String larga(String iso) => DateFormat("d 'de' MMMM 'de' y", 'es').format(DateTime.parse(iso));
 
   static String rango(String inicio, String? fin) =>
       fin == null ? 'Desde el ${larga(inicio)}' : '${larga(inicio)} al ${larga(fin)}';
-
-  /// Fin sugerido: un semestre (18 semanas) después del inicio.
-  static String finSugerido(String inicioIso) =>
-      DateFormat('yyyy-MM-dd').format(DateTime.parse(inicioIso).add(const Duration(days: 18 * 7)));
 }

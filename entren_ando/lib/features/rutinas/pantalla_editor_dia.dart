@@ -55,6 +55,18 @@ class _ContenidoEditorState extends ConsumerState<_ContenidoEditor> {
 
   bool get _soloLectura => !widget.ciclo.activo;
 
+  /// true cuando el usuario ya eligió Rutina o Descanso en esta pantalla.
+  bool _eligioTipo = false;
+
+  /// Un día de descanso SIN ejercicios se abre en modo Rutina (sin guardar):
+  /// así se pueden agregar ejercicios de inmediato. Si no se agrega ninguno,
+  /// en la base sigue de descanso (agregar uno lo cambia, ver agregarEjercicio).
+  bool _esDescansoVisible(DiaRutina dia, AsyncValue<List<EjercicioProgramado>> ejercicios) {
+    if (_eligioTipo || _soloLectura || !dia.esDescanso) return dia.esDescanso;
+    final lista = ejercicios.value;
+    return lista == null || lista.isNotEmpty;
+  }
+
   @override
   void dispose() {
     _espera?.cancel();
@@ -80,6 +92,7 @@ class _ContenidoEditorState extends ConsumerState<_ContenidoEditor> {
   }
 
   void _cambiarTipo(bool esDescanso) {
+    setState(() => _eligioTipo = true);
     final nombre = _nombre.text.trim();
     _guardar((repo) => repo.actualizarDia(
           widget.dia.idDia,
@@ -141,6 +154,7 @@ class _ContenidoEditorState extends ConsumerState<_ContenidoEditor> {
     final textos = Theme.of(context).textTheme;
     final error = _error;
     final lista = ejercicios.value ?? const <EjercicioProgramado>[];
+    final esDescanso = _esDescansoVisible(dia, ejercicios);
 
     return ContenidoPantalla(
       children: [
@@ -156,7 +170,7 @@ class _ContenidoEditorState extends ConsumerState<_ContenidoEditor> {
         EncabezadoPantalla(
           etiqueta: widget.ciclo.nombre,
           titulo: dia.nombreDiaSemana,
-          subtitulo: dia.esDescanso ? 'Descanso' : dia.nombre,
+          subtitulo: esDescanso ? 'Descanso' : (dia.esDescanso ? 'Agrega ejercicios para tu rutina' : dia.nombre),
         ),
         const SizedBox(height: Medidas.espacio5),
         if (_soloLectura) ...[
@@ -173,11 +187,11 @@ class _ContenidoEditorState extends ConsumerState<_ContenidoEditor> {
                 OpcionSegmento(valor: false, texto: 'Rutina'),
                 OpcionSegmento(valor: true, texto: 'Descanso'),
               ],
-              valor: dia.esDescanso,
+              valor: esDescanso,
               alCambiar: _cambiarTipo,
             ),
           ),
-          if (!dia.esDescanso) ...[
+          if (!esDescanso) ...[
             const SizedBox(height: Medidas.espacio4),
             CampoTexto(
               etiqueta: 'Nombre del día',
@@ -194,7 +208,7 @@ class _ContenidoEditorState extends ConsumerState<_ContenidoEditor> {
           Aviso(error, icono: Icons.error_outline_rounded),
           const SizedBox(height: Medidas.espacio4),
         ],
-        if (dia.esDescanso && !_soloLectura)
+        if (esDescanso && !_soloLectura)
           Text(
             lista.isEmpty
                 ? 'Este día es de descanso. Cámbialo a Rutina para agregar ejercicios.'

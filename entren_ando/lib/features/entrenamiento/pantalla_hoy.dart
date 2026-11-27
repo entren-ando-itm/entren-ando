@@ -125,15 +125,74 @@ class PantallaHoy extends ConsumerWidget {
       if (siguiente == null)
         const Aviso('¡Terminaste el entrenamiento de hoy!', icono: Icons.check_circle_outline_rounded)
       else
-        BotonPrincipal(
-          texto: 'Seguir entrenando',
-          icono: Icons.play_arrow_rounded,
-          alPresionar: () => _abrirEjercicio(context, siguiente),
+        // ENT-121: mantener presionado = terminar el día como está.
+        GestureDetector(
+          onLongPress: () => _terminarDia(context, ref, dia),
+          child: BotonPrincipal(
+            texto: 'Seguir entrenando',
+            icono: Icons.play_arrow_rounded,
+            alPresionar: () => _abrirEjercicio(context, siguiente),
+          ),
         ),
+      if (siguiente != null) ...[
+        const SizedBox(height: Medidas.espacio2),
+        Text(
+          'Mantén presionado para terminar el día como está.',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
       // ENT-50: comentario libre de la sesión (la IA lo usa en el feedback).
       const SizedBox(height: Medidas.espacio2),
       const _ComentarioSesion(),
     ];
+  }
+
+  /// Mantener presionado "Seguir entrenando" (ENT-121): confirma y termina
+  /// el día con lo que se lleva; queda completo con el 80% de las series.
+  Future<void> _terminarDia(BuildContext context, WidgetRef ref, DiaDeHoy dia) async {
+    final hechas = dia.ejercicios.fold<int>(0, (s, e) => s + (e.seriesHechas < e.series ? e.seriesHechas : e.series));
+    final objetivo = dia.ejercicios.fold<int>(0, (s, e) => s + e.series);
+    final porcentaje = objetivo == 0 ? 0 : (hechas * 100 / objetivo).floor();
+    final completo = objetivo > 0 && hechas >= objetivo * umbralDiaCompleto;
+    final pendientes = [for (final e in dia.ejercicios) if (!e.completado) e.idProgramado];
+    final seguro = await mostrarHojaInferior<bool>(
+      context: context,
+      constructor: (contexto) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          EncabezadoHoja(
+            titulo: 'Terminar el día así',
+            subtitulo: 'Llevas $hechas de $objetivo series ($porcentaje%). '
+                '${completo ? 'Tu día queda completo.' : 'Tu día queda parcial: necesitas el 80% para que sea completo.'}',
+          ),
+          const SizedBox(height: Medidas.espacio5),
+          BotonSecundario(
+            texto: completo ? 'Terminar como completo' : 'Terminar como parcial',
+            nivel: 2,
+            alPresionar: () => Navigator.pop(contexto, true),
+          ),
+          const SizedBox(height: Medidas.espacio2),
+          BotonTexto(texto: 'Seguir entrenando', anchoCompleto: true, alPresionar: () => Navigator.pop(contexto)),
+        ],
+      ),
+    );
+    if (seguro != true) return;
+    final repositorio = await ref.read(bitacoraRepositorioProvider.future);
+    if (repositorio == null) return;
+    try {
+      await repositorio.terminarDia(pendientes);
+      ref.invalidate(diaDeHoyProvider);
+      ref.invalidate(sesionDeHoyProvider);
+      for (final id in pendientes) {
+        ref.invalidate(ejercicioBitacoraProvider(id));
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo terminar el día: $error')));
+      }
+    }
   }
 
   /// Círculo de la lista (ENT-121): guarda todas las series con la precarga y
@@ -420,20 +479,32 @@ class _ComentarioSesion extends ConsumerWidget {
     final sesion = ref.watch(sesionDeHoyProvider).value;
     if (sesion == null || sesion.estado == 'descanso') return const SizedBox.shrink();
     final textos = Theme.of(context).textTheme;
-    final completa = sesion.estado == 'completa';
     final comentario = sesion.comentario;
+    // ENT-121: el texto sale de las series de hoy, para que coincida con la
+    // lista de arriba (completo con el 80% de las series).
+    final ejercicios = ref.watch(diaDeHoyProvider).value?.ejercicios ?? const <EjercicioDelDia>[];
+    final hechas = ejercicios.fold<int>(0, (s, e) => s + (e.seriesHechas < e.series ? e.seriesHechas : e.series));
+    final objetivo = ejercicios.fold<int>(0, (s, e) => s + e.series);
+    final sinEmpezar = hechas == 0 && ejercicios.every((e) => !e.completado);
+    final completa = !sinEmpezar && sesion.estado == 'completa';
+    final titulo = sinEmpezar
+        ? 'Sesión sin empezar'
+        : '${completa ? 'Día completo' : 'Sesión parcial'} · $hechas de $objetivo series';
 
     return Tarjeta(
       alTocar: () => _editar(context, ref, comentario),
       child: Row(
         children: [
-          PuntoSemaforo(completa ? EstadoDia.completo : EstadoDia.parcial, tamano: 14),
+          PuntoSemaforo(
+            sinEmpezar ? EstadoDia.sinActividad : (completa ? EstadoDia.completo : EstadoDia.parcial),
+            tamano: 14,
+          ),
           const SizedBox(width: Medidas.espacio3),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(completa ? 'Sesión completa' : 'Sesión parcial', style: textos.titleMedium),
+                Text(titulo, style: textos.titleMedium),
                 Text(
                   comentario ?? 'Agrega un comentario (por ejemplo, "me dolió el hombro")',
                   style: textos.bodySmall,

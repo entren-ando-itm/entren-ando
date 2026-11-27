@@ -12,6 +12,7 @@ export 'componentes/barras.dart';
 export 'componentes/botones.dart';
 export 'componentes/campos.dart';
 export 'componentes/contenido_pantalla.dart';
+export 'componentes/fechas.dart';
 export 'componentes/filas.dart';
 export 'componentes/hoja_inferior.dart';
 export 'componentes/semaforo.dart';

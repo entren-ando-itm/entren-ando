@@ -106,7 +106,10 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
             serie: serie,
             resaltada: false,
             alTocarNumeros: () => _ajustar(ejercicio, serie),
-            alMarcar: _guardando || serie.numero != ultimaHecha ? null : () => _marcar(ejercicio, serie),
+            // Terminado: para quitar series primero hay que volver a abrirlo.
+            alMarcar: _guardando || ejercicio.completado || serie.numero != ultimaHecha
+                ? null
+                : () => _marcar(ejercicio, serie),
           ),
           const SizedBox(height: Medidas.espacio2),
         ],
