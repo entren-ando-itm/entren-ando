@@ -9,6 +9,7 @@ import '../../core/db/usuario_actual.dart';
 import '../../core/diseno.dart';
 import 'bitacora/bitacora_repositorio.dart';
 import 'hoy_repositorio.dart';
+import 'refrescar_hoy.dart';
 
 /// Pestaña Hoy: vista del día tipo horario escolar (ENT-20, ENT-39 y ENT-40).
 ///
@@ -183,11 +184,7 @@ class PantallaHoy extends ConsumerWidget {
     if (repositorio == null) return;
     try {
       await repositorio.terminarDia(pendientes);
-      ref.invalidate(diaDeHoyProvider);
-      ref.invalidate(sesionDeHoyProvider);
-      for (final id in pendientes) {
-        ref.invalidate(ejercicioBitacoraProvider(id));
-      }
+      refrescarSesionDeHoy(ref, idsProgramados: pendientes);
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo terminar el día: $error')));
@@ -202,9 +199,7 @@ class PantallaHoy extends ConsumerWidget {
     if (repositorio == null) return;
     try {
       await repositorio.terminarCompleto(ejercicio.idProgramado);
-      ref.invalidate(diaDeHoyProvider);
-      ref.invalidate(sesionDeHoyProvider);
-      ref.invalidate(ejercicioBitacoraProvider(ejercicio.idProgramado));
+      refrescarSesionDeHoy(ref, idsProgramados: [ejercicio.idProgramado]);
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -528,7 +523,7 @@ class _ComentarioSesion extends ConsumerWidget {
     if (texto == null) return;
     final repositorio = await ref.read(bitacoraRepositorioProvider.future);
     await repositorio?.guardarComentario(texto);
-    ref.invalidate(sesionDeHoyProvider);
+    refrescarSesionDeHoy(ref);
   }
 }
 

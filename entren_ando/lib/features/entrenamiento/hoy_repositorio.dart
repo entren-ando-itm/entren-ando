@@ -48,7 +48,8 @@ class EjercicioDelDia {
   /// Segundos de trabajo para ejercicios por tiempo (por ejemplo, la plancha).
   final int? trabajoSeg;
 
-  /// true si hoy ya se marcó como completado en la bitácora.
+  /// true si hoy ya se terminó en la bitácora, o si ya tiene todas sus series
+  /// marcadas aunque no se haya tocado "Terminar ejercicio" (ENT-121).
   final bool completado;
 
   /// Series guardadas hoy (ENT-121: "2/4" cuando se terminó parcialmente).
@@ -209,7 +210,9 @@ final diaDeHoyProvider = FutureProvider<DiaDeHoy?>((ref) async {
           pesoKg: (f['peso_objetivo_kg'] as num?)?.toDouble(),
           descansoSeg: f['descanso_seg'] as int,
           trabajoSeg: f['trabajo_seg'] as int?,
-          completado: f['completado'] == 1,
+          // ENT-121: con todas las series marcadas cuenta como hecho (también
+          // después de "Volver a abrir"); si se quita una, ya no.
+          completado: f['completado'] == 1 || (f['series_hechas'] as int) >= (f['series_objetivo'] as int),
           seriesHechas: f['series_hechas'] as int,
         ),
     ];

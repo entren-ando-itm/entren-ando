@@ -248,6 +248,11 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Sin peso (0 kg) se muestran solo las repeticiones ("10 reps", "3 × 10") en el ejercicio, Hoy,
   el editor y el calendario; y en el detalle del calendario un ejercicio terminado sin series ya no
   lleva la palomita verde (toca `pantalla_calendario.dart` de Paola).
+  Un ejercicio con todas sus series marcadas cuenta como hecho en Hoy y en el detalle del calendario
+  aunque no se haya tocado "Terminar ejercicio" (también después de "Volver a abrir"); si se quita
+  una serie, ya no. Al registrar algo de hoy se refresca también el calendario con
+  `refrescarSesionDeHoy(ref)` (`lib/features/entrenamiento/refrescar_hoy.dart`): úsalo en vez de
+  invalidar los proveedores uno por uno.
 
 * **2026-11-25 · ENT-127, ENT-41 y RN-01 · Pablo · PR #25**
   Saludo según la hora en Hoy ("Buenas noches, Pablo", toca `pantalla_hoy.dart` de Paola); hoja de

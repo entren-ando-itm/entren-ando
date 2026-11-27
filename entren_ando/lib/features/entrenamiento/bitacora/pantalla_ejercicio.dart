@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/diseno.dart';
 import '../hoy_repositorio.dart';
+import '../refrescar_hoy.dart';
 import '../temporizador/temporizador.dart';
 import '../temporizador/temporizador_flotante.dart';
 import 'bitacora_repositorio.dart';
@@ -176,11 +177,7 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
     );
   }
 
-  void _refrescar(String idProgramado) {
-    ref.invalidate(ejercicioBitacoraProvider(idProgramado));
-    ref.invalidate(diaDeHoyProvider);
-    ref.invalidate(sesionDeHoyProvider);
-  }
+  void _refrescar(String idProgramado) => refrescarSesionDeHoy(ref, idsProgramados: [idProgramado]);
 
   void _avisarError(String accion, Object error) {
     if (!mounted) return;
@@ -324,9 +321,7 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
       await repositorio.sustituir(idProgramado: widget.idProgramado, idEjercicio: elegido);
       _ajustes.clear();
       ref.read(temporizadorProvider.notifier).detener();
-      ref.invalidate(ejercicioBitacoraProvider(widget.idProgramado));
-      ref.invalidate(diaDeHoyProvider);
-      ref.invalidate(sesionDeHoyProvider);
+      refrescarSesionDeHoy(ref, idsProgramados: [widget.idProgramado]);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -270,9 +270,11 @@ final detalleDiaProvider = FutureProvider.family<DetalleDia?, String>((ref, fech
   final filas = await bd.rawQuery('''
     SELECT r.id_registro, r.orden, r.completado, r.es_sustitucion,
            COALESCE(ue.nombre_alias, e.nombre_oficial) AS nombre,
+           ep.series_objetivo,
            x.numero_serie, x.peso_kg, x.repeticiones
     FROM registro_ejercicio r
     JOIN ejercicio e ON e.id_ejercicio = r.id_ejercicio
+    LEFT JOIN ejercicio_programado ep ON ep.id_programado = r.id_programado
     LEFT JOIN usuario_ejercicio ue
       ON ue.id_ejercicio = r.id_ejercicio AND ue.id_usuario = ? AND ue.eliminado = 0
     LEFT JOIN serie x ON x.id_registro = r.id_registro AND x.eliminado = 0
@@ -281,6 +283,7 @@ final detalleDiaProvider = FutureProvider.family<DetalleDia?, String>((ref, fech
   ''', [idUsuario, sesion['id_sesion']]);
 
   final ejercicios = <String, EjercicioDelDiaPasado>{};
+  final objetivos = <String, int?>{};
   for (final f in filas) {
     final id = f['id_registro'] as String;
     final ejercicio = ejercicios.putIfAbsent(
@@ -292,6 +295,7 @@ final detalleDiaProvider = FutureProvider.family<DetalleDia?, String>((ref, fech
         series: [],
       ),
     );
+    objetivos[id] = f['series_objetivo'] as int?;
     if (f['numero_serie'] != null) {
       ejercicio.series.add((
         numero: f['numero_serie'] as int,
@@ -306,6 +310,16 @@ final detalleDiaProvider = FutureProvider.family<DetalleDia?, String>((ref, fech
     comentario: sesion['comentario'] as String?,
     nombreDia: sesion['nombre_dia'] as String?,
     esOverride: sesion['es_override'] == 1,
-    ejercicios: ejercicios.values.toList(),
+    // ENT-121: con todas sus series marcadas también cuenta como hecho,
+    // aunque no se haya tocado "Terminar ejercicio".
+    ejercicios: [
+      for (final MapEntry(key: id, value: e) in ejercicios.entries)
+        EjercicioDelDiaPasado(
+          nombre: e.nombre,
+          completado: e.completado || (objetivos[id] != null && e.series.length >= objetivos[id]!),
+          esSustitucion: e.esSustitucion,
+          series: e.series,
+        ),
+    ],
   );
 });
