@@ -199,6 +199,8 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `hayRedProvider` y `ref.read(hayRedProvider.notifier).revisar()` | `lib/core/conectividad/conectividad.dart` | Saber si hay internet de verdad y reaccionar cuando vuelve la red (ENT-44) |
 | `BotonConRed` | `lib/core/conectividad/boton_con_red.dart` | Botones que necesitan internet |
 | `ClienteSupabase.cliente` | `lib/features/nube/cliente_supabase.dart` | El cliente de Supabase (null si no hay `.env`). ENT-41 inicia sesión con él |
+| `Cuenta.eliminarCuenta()` y Edge Function `eliminar-cuenta` | `lib/features/cuenta/sesion_cuenta.dart`, `supabase/functions/eliminar-cuenta/` | Borrar la cuenta en la nube (cascada) y luego la base local y su llave (ENT-51) |
+| `BaseDatos.borrarTodo()` | `lib/core/db/base_datos.dart` | Borra la base local y su llave; la siguiente lectura crea una nueva (ENT-51) |
 | Edge Function `premium-prueba` | `supabase/functions/premium-prueba/` | ENT-93 activa Premium para la cuenta autenticada. Devuelve `id_plan`, `id_suscripcion` y `fecha_expiracion` para ENT-94. |
 | `sincronizacionProvider` y `.notifier.sincronizar()` | `lib/core/sync/sincronizacion.dart` | Estado de la sincronización (`ultimaVez`, `bajadas`, `descartadas`) y sincronizar ya: sube y baja (ENT-54) |
 | `MarcasSync` | `lib/core/sync/marcas_sync.dart` | Hora de la última sincronización por usuario (también la de segundo plano) |
@@ -225,6 +227,17 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Pablo · base, diseño y cuenta (`lib/core/db`, `lib/core/tema`, `lib/core/componentes`, `lib/features/cuenta`)
+
+* **2026-11-26 · ENT-51 · Pablo · PR pendiente**
+  Qué: Perfil → Cuenta y privacidad → "Eliminar mi cuenta y mis datos" pide escribir ELIMINAR y
+  necesita internet (sin red, `Aviso.sinRed` y no se borra nada). La Edge Function `eliminar-cuenta`
+  toma el usuario del JWT y lo borra de `auth.users` con la llave de servicio; la cascada borra todo
+  en la nube. Solo si eso sale bien, `Cuenta.eliminarCuenta` borra la base local y su llave
+  (`BaseDatos.borrarTodo`, `LlaveCifrado.borrar`), las marcas de sincronización y la sesión, y abre
+  el registro. El demo no se puede eliminar.
+  Para el siguiente: publicar con `supabase functions deploy eliminar-cuenta`. Cerrar sesión sigue
+  sin borrar datos (decisión 16); eliminar la cuenta sí borra todo el celular, también lo de otras
+  cuentas que hayan entrado en él.
 
 * **2026-11-25 · ENT-127, ENT-41 y RN-01 · Pablo · PR #25**
   Saludo según la hora en Hoy ("Buenas noches, Pablo", toca `pantalla_hoy.dart` de Paola); hoja de

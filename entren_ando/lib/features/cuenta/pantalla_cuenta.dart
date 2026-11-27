@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app.dart';
 import '../../core/conectividad/conectividad.dart';
 import '../../core/db/base_datos.dart';
 import '../../core/db/usuario_actual.dart';
@@ -9,6 +10,7 @@ import '../../core/diseno.dart';
 import '../../core/sync/motor_sync.dart';
 import '../../core/sync/sincronizacion.dart';
 import '../nube/cliente_supabase.dart';
+import 'cuenta_repositorio.dart';
 import 'sesion_cuenta.dart';
 
 /// Nombre del plan del usuario ("Gratuito" o "Premium").
@@ -104,22 +106,6 @@ class _PantallaCuentaState extends ConsumerState<PantallaCuenta> {
     if (mounted) setState(() => _saliendo = false);
   }
 
-  /// Aviso provisional de Eliminar cuenta (ENT-51).
-  Future<void> _muyPronto(String titulo, String detalle) {
-    return mostrarHojaInferior<void>(
-      context: context,
-      constructor: (contexto) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          EncabezadoHoja(titulo: titulo, subtitulo: detalle),
-          const SizedBox(height: Medidas.espacio5),
-          BotonSecundario(texto: 'Entendido', alPresionar: () => Navigator.pop(contexto)),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final sesion = ref.watch(sesionActualProvider);
@@ -173,9 +159,9 @@ class _PantallaCuentaState extends ConsumerState<PantallaCuenta> {
               FilaAjuste(
                 titulo: 'Eliminar mi cuenta y mis datos',
                 icono: Icons.delete_outline_rounded,
-                alTocar: () => _muyPronto(
-                  'Eliminar cuenta',
-                  'Borrar tu cuenta y todos tus datos llega en el Sprint 3 (ENT-51).',
+                alTocar: () => mostrarHojaInferior<void>(
+                  context: context,
+                  constructor: (contexto) => const HojaEliminarCuenta(),
                 ),
               ),
             ],
@@ -188,6 +174,100 @@ class _PantallaCuentaState extends ConsumerState<PantallaCuenta> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Eliminar mi cuenta y mis datos (ENT-51, derecho de cancelación de la
+/// LFPDPPP). Pide escribir ELIMINAR y necesita internet: sin red no borra nada.
+class HojaEliminarCuenta extends ConsumerStatefulWidget {
+  const HojaEliminarCuenta({super.key});
+
+  @override
+  ConsumerState<HojaEliminarCuenta> createState() => _HojaEliminarCuentaState();
+}
+
+class _HojaEliminarCuentaState extends ConsumerState<HojaEliminarCuenta> {
+  final _confirmacion = TextEditingController();
+  bool _eliminando = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _confirmacion.dispose();
+    super.dispose();
+  }
+
+  Future<void> _eliminar() async {
+    if (_eliminando || !confirmaEliminar(_confirmacion.text)) return;
+    final contenedor = ProviderScope.containerOf(context, listen: false);
+    setState(() {
+      _eliminando = true;
+      _error = null;
+    });
+    final resultado = await Cuenta.eliminarCuenta();
+    if (resultado.bien) {
+      // La base local ya no existe: las pantallas la vuelven a abrir (nueva).
+      contenedor.invalidate(baseDatosProvider);
+      rutas.go('/registro');
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _eliminando = false;
+        _error = resultado.error;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hayRed = ref.watch(hayRedProvider);
+    final esDemo = ref.watch(sesionActualProvider)?.esDemo ?? false;
+    final confirmado = confirmaEliminar(_confirmacion.text);
+    final error = _error;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const EncabezadoHoja(
+          titulo: 'Eliminar mi cuenta',
+          subtitulo: 'Se borran para siempre tu cuenta, tus rutinas, tus entrenamientos, tus comidas '
+              'y tus mediciones, en la nube y en este celular. No se puede deshacer.',
+        ),
+        const SizedBox(height: Medidas.espacio5),
+        if (esDemo)
+          const Aviso(MensajesCuenta.eliminarDemo)
+        else ...[
+          CampoTexto(
+            etiqueta: 'Escribe $palabraEliminar para confirmar',
+            controlador: _confirmacion,
+            habilitado: !_eliminando,
+            accionTeclado: TextInputAction.done,
+            alCambiar: (_) => setState(() {}),
+          ),
+          if (error != null) ...[
+            const SizedBox(height: Medidas.espacio3),
+            Aviso(error, icono: Icons.error_outline_rounded),
+          ],
+          const SizedBox(height: Medidas.espacio4),
+          BotonSecundario(
+            texto: _eliminando ? 'Eliminando…' : 'Eliminar para siempre',
+            icono: Icons.delete_forever_outlined,
+            alPresionar: hayRed && confirmado && !_eliminando ? _eliminar : null,
+          ),
+          if (!hayRed) ...[
+            const SizedBox(height: Medidas.espacio3),
+            const Aviso.sinRed(MensajesCuenta.eliminarSinRed),
+          ],
+        ],
+        const SizedBox(height: Medidas.espacio2),
+        BotonTexto(
+          texto: 'Cancelar',
+          anchoCompleto: true,
+          alPresionar: _eliminando ? null : () => Navigator.pop(context),
+        ),
+      ],
     );
   }
 }

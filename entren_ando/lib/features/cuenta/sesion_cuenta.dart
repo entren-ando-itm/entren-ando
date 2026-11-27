@@ -7,6 +7,7 @@ import '../../core/db/datos_prueba.dart';
 import '../../core/db/escritura_local.dart';
 import '../../core/db/fechas.dart';
 import '../../core/db/usuario_actual.dart';
+import '../../core/sync/marcas_sync.dart';
 import '../nube/cliente_supabase.dart';
 import 'cuenta_repositorio.dart';
 
@@ -188,6 +189,54 @@ class Cuenta {
 
   /// Cierra la sesión (ENT-43). Los datos se quedan en el celular: se
   /// borrarán al salir cuando exista la bajada desde la nube (ENT-53).
+  /// Elimina la cuenta y todos los datos (ENT-51, LFPDPPP).
+  ///
+  /// 1. La función `eliminar-cuenta` borra el usuario de Supabase Auth; la
+  ///    cascada borra todas sus filas en la nube.
+  /// 2. Solo si eso salió bien, se borran la base local, su llave, las marcas
+  ///    de sincronización y la sesión. Si falla, no se borra nada.
+  static Future<ResultadoCuenta> eliminarCuenta() async {
+    final actual = sesionActual.value;
+    if (actual == null) return const ResultadoCuenta.mal(MensajesCuenta.errorGeneral);
+    if (actual.esDemo) return const ResultadoCuenta.mal(MensajesCuenta.eliminarDemo);
+    final cliente = ClienteSupabase.cliente;
+    final sesion = cliente?.auth.currentSession;
+    if (cliente == null) return const ResultadoCuenta.mal(MensajesCuenta.sinSupabase);
+    if (sesion == null || sesion.user.id != actual.idUsuario) {
+      return const ResultadoCuenta.mal('Vuelve a iniciar sesión para eliminar tu cuenta.');
+    }
+    try {
+      final respuesta = await cliente.functions.invoke(
+        'eliminar-cuenta',
+        headers: {'Authorization': 'Bearer ${sesion.accessToken}'},
+      );
+      final datos = respuesta.data;
+      if (respuesta.status != 200 || datos is! Map || datos['eliminada'] != true) {
+        return const ResultadoCuenta.mal(MensajesCuenta.eliminarError);
+      }
+    } on FunctionException catch (e) {
+      debugPrint('Entren-Ando: no se pudo eliminar la cuenta (${e.status}).');
+      return ResultadoCuenta.mal(
+        e.status == 401 ? 'Vuelve a iniciar sesión para eliminar tu cuenta.' : MensajesCuenta.eliminarError,
+      );
+    } catch (e) {
+      debugPrint('Entren-Ando: no se pudo eliminar la cuenta: $e');
+      return const ResultadoCuenta.mal(MensajesCuenta.eliminarSinRed);
+    }
+
+    // La cuenta ya no existe en la nube: se limpia el celular.
+    try {
+      await cliente.auth.signOut(scope: SignOutScope.local);
+    } catch (_) {
+      // El usuario ya no existe; basta con olvidar la sesión local.
+    }
+    await (await MarcasSync.abrir()).borrarUsuario(actual.idUsuario);
+    await BaseDatos.borrarTodo();
+    await _escribirDemo(false);
+    sesionActual.value = null;
+    return const ResultadoCuenta.bien();
+  }
+
   static Future<void> cerrarSesion() async {
     final cliente = ClienteSupabase.cliente;
     if (cliente != null && cliente.auth.currentSession != null) {
