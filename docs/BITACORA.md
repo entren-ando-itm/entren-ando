@@ -226,6 +226,17 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Pablo · base, diseño y cuenta (`lib/core/db`, `lib/core/tema`, `lib/core/componentes`, `lib/features/cuenta`)
 
+* **2026-11-26 · ENT-121 · Pablo · PR pendiente**
+  Qué: la pantalla del ejercicio muestra las series una por una ("Serie 2 de 4", barra de avance y
+  las hechas arriba); se marcan en orden y solo se quita el ✓ de la última (`SerieFueraDeOrden`).
+  "Terminar ejercicio" con un toque completa las que faltan con la precarga
+  (`BitacoraRepositorio.terminarCompleto`); manteniéndolo presionado se confirma "Terminar con 2
+  de 4 series" (parcial). En Hoy, tocar la fila abre el ejercicio (también terminado, para
+  corregir) y tocar el círculo lo termina completo; un parcial se ve naranja con "2/4 series".
+  Por qué / decisión (PO): el día es **completo con el 80% de las series objetivo**
+  (`umbralDiaCompleto`, `estadoSesion`); cambia la regla de ENT-90 de Paola. Toca
+  `lib/features/entrenamiento` (Paola).
+
 * **2026-11-25 · ENT-127, ENT-41 y RN-01 · Pablo · PR #25**
   Saludo según la hora en Hoy ("Buenas noches, Pablo", toca `pantalla_hoy.dart` de Paola); hoja de
   bienvenida al entrar; mensajes de Supabase (correo inválido, demasiados intentos); la

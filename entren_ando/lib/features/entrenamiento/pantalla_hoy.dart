@@ -86,7 +86,7 @@ class PantallaHoy extends ConsumerWidget {
               const _Saludo(),
               _Encabezado(dia),
               const SizedBox(height: Medidas.espacio5),
-              ..._cuerpoDelDia(context, dia),
+              ..._cuerpoDelDia(context, ref, dia),
               const SizedBox(height: Medidas.espacio5),
               _FranjasSemana(dia),
             ],
@@ -97,7 +97,7 @@ class PantallaHoy extends ConsumerWidget {
   }
 
   /// Ejercicios y botón, o el aviso de descanso / día terminado.
-  List<Widget> _cuerpoDelDia(BuildContext context, DiaDeHoy dia) {
+  List<Widget> _cuerpoDelDia(BuildContext context, WidgetRef ref, DiaDeHoy dia) {
     if (dia.esDescanso) {
       return const [
         Aviso('Hoy toca descanso. Recupérate bien.', icono: Icons.bedtime_outlined),
@@ -113,7 +113,14 @@ class PantallaHoy extends ConsumerWidget {
     final siguiente = dia.siguiente;
     return [
       for (final ejercicio in dia.ejercicios)
-        _FilaEjercicio(ejercicio, esSiguiente: identical(ejercicio, siguiente)),
+        _FilaEjercicio(
+          ejercicio,
+          esSiguiente: identical(ejercicio, siguiente),
+          // ENT-121: tocar la fila abre el ejercicio (también si ya se terminó,
+          // para corregirlo); tocar el círculo lo termina completo.
+          alAbrir: () => _abrirEjercicio(context, ejercicio),
+          alTerminar: ejercicio.completado ? null : () => _terminarDesdeHoy(context, ref, ejercicio),
+        ),
       const SizedBox(height: Medidas.espacio5),
       if (siguiente == null)
         const Aviso('¡Terminaste el entrenamiento de hoy!', icono: Icons.check_circle_outline_rounded)
@@ -127,6 +134,25 @@ class PantallaHoy extends ConsumerWidget {
       const SizedBox(height: Medidas.espacio2),
       const _ComentarioSesion(),
     ];
+  }
+
+  /// Círculo de la lista (ENT-121): guarda todas las series con la precarga y
+  /// lo marca completo, sin entrar a la pantalla del ejercicio.
+  Future<void> _terminarDesdeHoy(BuildContext context, WidgetRef ref, EjercicioDelDia ejercicio) async {
+    final repositorio = await ref.read(bitacoraRepositorioProvider.future);
+    if (repositorio == null) return;
+    try {
+      await repositorio.terminarCompleto(ejercicio.idProgramado);
+      ref.invalidate(diaDeHoyProvider);
+      ref.invalidate(sesionDeHoyProvider);
+      ref.invalidate(ejercicioBitacoraProvider(ejercicio.idProgramado));
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo terminar ${ejercicio.nombre}: $error')),
+        );
+      }
+    }
   }
 
   /// Abre la pantalla del ejercicio que sigue.
@@ -156,9 +182,18 @@ class _Encabezado extends StatelessWidget {
 
 /// Un ejercicio de hoy: círculo de estado, nombre (alias) y series × repeticiones.
 class _FilaEjercicio extends StatelessWidget {
-  const _FilaEjercicio(this.ejercicio, {required this.esSiguiente});
+  const _FilaEjercicio(
+    this.ejercicio, {
+    required this.esSiguiente,
+    required this.alAbrir,
+    required this.alTerminar,
+  });
 
   final EjercicioDelDia ejercicio;
+  final VoidCallback alAbrir;
+
+  /// null si ya está terminado.
+  final VoidCallback? alTerminar;
 
   /// true si es el primer ejercicio sin completar (lleva la marca "Sigue").
   final bool esSiguiente;
@@ -168,15 +203,36 @@ class _FilaEjercicio extends StatelessWidget {
     final colores = context.colores;
     final textos = Theme.of(context).textTheme;
     final hecho = ejercicio.completado;
+    final parcial = ejercicio.parcial;
+    final estado = parcial
+        ? 'Terminado con ${ejercicio.seriesHechas} de ${ejercicio.series} series'
+        : (hecho ? 'Completado' : (esSiguiente ? 'Sigue' : 'Pendiente'));
 
     return Semantics(
-      label: hecho ? 'Completado' : (esSiguiente ? 'Sigue' : 'Pendiente'),
-      child: ConstrainedBox(
+      label: estado,
+      child: InkWell(
+        onTap: alAbrir,
+        borderRadius: BorderRadius.circular(Medidas.radioInterno),
+        child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 46),
         child: Row(
           children: [
-            _CirculoEstado(completado: hecho, esSiguiente: esSiguiente),
-            const SizedBox(width: Medidas.espacio3),
+            Semantics(
+              button: alTerminar != null,
+              label: alTerminar != null ? 'Terminar ${ejercicio.nombre} completo' : null,
+              child: InkResponse(
+                onTap: alTerminar,
+                radius: 24,
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Center(
+                    child: _CirculoEstado(completado: hecho, parcial: parcial, esSiguiente: esSiguiente),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: Medidas.espacio1),
             Expanded(
               child: Row(
                 children: [
@@ -186,8 +242,8 @@ class _FilaEjercicio extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: textos.titleMedium?.copyWith(
                         // Completado: tachado en verde, como en el diseño.
-                        color: hecho ? ColoresSemaforo.completa : null,
-                        decoration: hecho ? TextDecoration.lineThrough : null,
+                        color: hecho && !parcial ? ColoresSemaforo.completa : null,
+                        decoration: hecho && !parcial ? TextDecoration.lineThrough : null,
                         decorationColor: ColoresSemaforo.completa,
                       ),
                     ),
@@ -201,13 +257,14 @@ class _FilaEjercicio extends StatelessWidget {
             ),
             const SizedBox(width: Medidas.espacio2),
             Text(
-              _detalle(ejercicio),
+              parcial ? '${ejercicio.seriesHechas}/${ejercicio.series} series' : _detalle(ejercicio),
               style: textos.bodyMedium?.copyWith(
                 color: colores.tinta2,
                 fontFeatures: TipografiaEntrenAndo.numerosTabulares,
               ),
             ),
           ],
+        ),
         ),
       ),
     );
@@ -226,14 +283,25 @@ class _FilaEjercicio extends StatelessWidget {
 
 /// Círculo de 24: verde con palomita (completado), en tinta (sigue) o gris (pendiente).
 class _CirculoEstado extends StatelessWidget {
-  const _CirculoEstado({required this.completado, required this.esSiguiente});
+  const _CirculoEstado({required this.completado, required this.esSiguiente, this.parcial = false});
 
   final bool completado;
   final bool esSiguiente;
 
+  /// Terminado con menos series: naranja con una raya (no solo el color).
+  final bool parcial;
+
   @override
   Widget build(BuildContext context) {
     final colores = context.colores;
+    if (parcial) {
+      return Container(
+        width: 24,
+        height: 24,
+        decoration: const BoxDecoration(color: ColoresSemaforo.parcial, shape: BoxShape.circle),
+        child: Icon(Icons.remove_rounded, size: 16, color: colores.fondo),
+      );
+    }
     final color = completado
         ? ColoresSemaforo.completa
         : (esSiguiente ? colores.tinta : colores.sup2);

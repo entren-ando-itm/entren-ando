@@ -74,32 +74,55 @@ void main() {
     expect(series.first.pesoKg, 0);
   });
 
-  group('Estado de la sesión (ENT-90)', () {
-    test('Completa: todos completados con sus series objetivo', () {
+  group('Estado de la sesión: 80% de las series (ENT-90 y ENT-121)', () {
+    test('Completa: todas las series hechas', () {
       expect(
         estadoSesion(const [
           (completado: true, seriesHechas: 4, seriesObjetivo: 4),
-          (completado: true, seriesHechas: 5, seriesObjetivo: 3),
+          (completado: true, seriesHechas: 3, seriesObjetivo: 3),
         ]),
         'completa',
       );
     });
 
-    test('Parcial: un ejercicio completado con menos series', () {
+    test('Completa: 13 de 16 series (81%) aunque un ejercicio quedó parcial', () {
       expect(
         estadoSesion(const [
           (completado: true, seriesHechas: 4, seriesObjetivo: 4),
-          (completado: true, seriesHechas: 2, seriesObjetivo: 3),
+          (completado: true, seriesHechas: 4, seriesObjetivo: 4),
+          (completado: true, seriesHechas: 4, seriesObjetivo: 4),
+          (completado: true, seriesHechas: 1, seriesObjetivo: 4),
+        ]),
+        'completa',
+      );
+    });
+
+    test('Parcial: 12 de 16 series (75%)', () {
+      expect(
+        estadoSesion(const [
+          (completado: true, seriesHechas: 4, seriesObjetivo: 4),
+          (completado: true, seriesHechas: 4, seriesObjetivo: 4),
+          (completado: true, seriesHechas: 4, seriesObjetivo: 4),
+          (completado: false, seriesHechas: 0, seriesObjetivo: 4),
         ]),
         'parcial',
       );
     });
 
-    test('Parcial: falta terminar un ejercicio aunque tenga sus series', () {
+    test('Exactamente 80% cuenta como completa', () {
       expect(
         estadoSesion(const [
-          (completado: true, seriesHechas: 4, seriesObjetivo: 4),
-          (completado: false, seriesHechas: 3, seriesObjetivo: 3),
+          (completado: true, seriesHechas: 4, seriesObjetivo: 5),
+        ]),
+        'completa',
+      );
+    });
+
+    test('Las series de más no compensan las que faltan en otro ejercicio', () {
+      expect(
+        estadoSesion(const [
+          (completado: true, seriesHechas: 8, seriesObjetivo: 4),
+          (completado: false, seriesHechas: 0, seriesObjetivo: 4),
         ]),
         'parcial',
       );
@@ -107,6 +130,10 @@ void main() {
 
     test('Parcial: un día sin ejercicios no cuenta como completo', () {
       expect(estadoSesion(const []), 'parcial');
+    });
+
+    test('El umbral es 80%', () {
+      expect(umbralDiaCompleto, 0.8);
     });
   });
 }

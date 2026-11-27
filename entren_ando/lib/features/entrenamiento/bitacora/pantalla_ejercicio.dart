@@ -17,8 +17,9 @@ import 'bitacora_repositorio.dart';
 /// * Tocar los números abre una hoja con + y − para ajustar antes de confirmar.
 /// * Todo se guarda en la base local: funciona en modo avión (RNF-01).
 ///
-/// * "Terminar ejercicio" (ENT-50) marca el ejercicio aunque falten series,
-///   recalcula el estado de la sesión y regresa a Hoy.
+/// * ENT-121: las series se muestran una por una y se marcan en orden; solo se
+///   quita el ✓ de la última. "Terminar ejercicio" con un toque completa las
+///   que faltan; manteniéndolo presionado termina solo con las hechas.
 ///
 /// * "Cambiar solo hoy" (ENT-59): cambia el ejercicio por una alternativa solo
 ///   hoy; sin alternativas, el botón no aparece.
@@ -65,8 +66,11 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
   Widget _contenido(BuildContext context, EjercicioBitacora ejercicio) {
     final textos = Theme.of(context).textTheme;
     final series = [for (final s in ejercicio.series) _ajustes[s.numero] ?? s];
-    // La que sigue es la primera sin guardar: va resaltada.
-    final siguiente = series.where((s) => !s.guardada).firstOrNull?.numero;
+    final total = series.length;
+    final hechas = series.where((s) => s.guardada).toList();
+    // ENT-121: una por una. La actual es la primera sin guardar; se marcan en orden.
+    final actual = series.where((s) => !s.guardada).firstOrNull;
+    final ultimaHecha = hechas.lastOrNull?.numero;
 
     return ContenidoPantalla(
       children: [
@@ -88,15 +92,42 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
           ),
         ],
         const SizedBox(height: Medidas.espacio5),
-        for (final serie in series) ...[
+        BarraProgreso(
+          valor: total == 0 ? 0 : hechas.length / total,
+          descripcion: '${hechas.length} de $total series',
+        ),
+        const SizedBox(height: Medidas.espacio2),
+        Text('${hechas.length} de $total series', style: textos.bodySmall),
+        const SizedBox(height: Medidas.espacio4),
+        // Las hechas: se puede corregir el peso o las reps de cualquiera, y
+        // quitar el ✓ solo de la última (para no dejar huecos).
+        for (final serie in hechas) ...[
           _FilaSerie(
             serie: serie,
-            resaltada: serie.numero == siguiente,
+            resaltada: false,
             alTocarNumeros: () => _ajustar(ejercicio, serie),
-            alMarcar: _guardando ? null : () => _marcar(ejercicio, serie),
+            alMarcar: _guardando || serie.numero != ultimaHecha ? null : () => _marcar(ejercicio, serie),
           ),
           const SizedBox(height: Medidas.espacio2),
         ],
+        if (actual != null && !ejercicio.completado) ...[
+          EtiquetaSeccion('Serie ${actual.numero} de $total'),
+          const SizedBox(height: Medidas.espacio2),
+          _FilaSerie(
+            serie: actual,
+            resaltada: true,
+            alTocarNumeros: () => _ajustar(ejercicio, actual),
+            alMarcar: _guardando ? null : () => _marcar(ejercicio, actual),
+          ),
+          if (total - actual.numero > 0) ...[
+            const SizedBox(height: Medidas.espacio2),
+            Text(
+              total - actual.numero == 1 ? 'Después queda 1 serie' : 'Después quedan ${total - actual.numero} series',
+              style: textos.bodySmall,
+            ),
+          ],
+        ] else if (actual == null && !ejercicio.completado)
+          const Aviso('Hiciste todas las series. Toca Terminar ejercicio.', icono: Icons.check_circle_outline_rounded),
         const SizedBox(height: Medidas.espacio4),
         TemporizadorFlotante(
           nombreEjercicio: ejercicio.nombre,
@@ -107,43 +138,124 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
               : 'Empezó al marcar la serie $_serieDelDescanso',
         ),
         const SizedBox(height: Medidas.espacio5),
-        // ENT-50: el diseño lo pone como botón secundario grande al final.
         if (ejercicio.completado) ...[
-          const Aviso('Ejercicio terminado.', icono: Icons.check_circle_outline_rounded),
+          Aviso(
+            hechas.length >= total
+                ? 'Ejercicio terminado.'
+                : 'Terminaste con ${hechas.length} de $total series.',
+            icono: Icons.check_circle_outline_rounded,
+          ),
           BotonTexto(
             texto: 'Volver a abrir',
             anchoCompleto: true,
-            alPresionar: _guardando ? null : () => _terminar(ejercicio, completado: false),
+            alPresionar: _guardando ? null : () => _reabrir(ejercicio),
           ),
-        ] else
-          BotonSecundario(
-            texto: 'Terminar ejercicio',
-            nivel: 2,
-            grande: true,
-            alPresionar: _guardando ? null : () => _terminar(ejercicio),
+        ] else ...[
+          // Un toque: completa las series que faltan. Mantener presionado:
+          // terminar solo con las series hechas (ENT-121).
+          GestureDetector(
+            onLongPress: _guardando ? null : () => _terminarParcial(ejercicio, hechas.length, total),
+            child: BotonSecundario(
+              texto: 'Terminar ejercicio',
+              nivel: 2,
+              grande: true,
+              alPresionar: _guardando ? null : () => _terminarCompleto(ejercicio),
+            ),
           ),
+          const SizedBox(height: Medidas.espacio2),
+          Text(
+            'Mantén presionado para terminar solo con las series que hiciste.',
+            textAlign: TextAlign.center,
+            style: textos.bodySmall,
+          ),
+        ],
       ],
     );
   }
 
-  /// "Terminar ejercicio": lo marca completado aunque falten series y regresa a Hoy.
-  Future<void> _terminar(EjercicioBitacora ejercicio, {bool completado = true}) async {
+  void _refrescar(String idProgramado) {
+    ref.invalidate(ejercicioBitacoraProvider(idProgramado));
+    ref.invalidate(diaDeHoyProvider);
+    ref.invalidate(sesionDeHoyProvider);
+  }
+
+  void _avisarError(String accion, Object error) {
+    if (!mounted) return;
+    final mensaje = error is SerieFueraDeOrden ? error.mensaje : 'No se pudo $accion: $error';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
+  }
+
+  /// Un toque en "Terminar ejercicio": guarda las series que faltan con lo que
+  /// muestra la pantalla y lo marca completo; regresa a Hoy.
+  Future<void> _terminarCompleto(EjercicioBitacora ejercicio) async {
     final repositorio = await ref.read(bitacoraRepositorioProvider.future);
     if (repositorio == null) return;
     setState(() => _guardando = true);
     try {
-      await repositorio.completarEjercicio(ejercicio.idProgramado, completado: completado);
-      if (completado) ref.read(temporizadorProvider.notifier).detener();
-      ref.invalidate(ejercicioBitacoraProvider(ejercicio.idProgramado));
-      ref.invalidate(diaDeHoyProvider);
-      ref.invalidate(sesionDeHoyProvider);
-      if (completado && mounted) Navigator.of(context).maybePop();
+      await repositorio.terminarCompleto(ejercicio.idProgramado, ajustes: Map.of(_ajustes));
+      _ajustes.clear();
+      ref.read(temporizadorProvider.notifier).detener();
+      _refrescar(ejercicio.idProgramado);
+      if (mounted) Navigator.of(context).maybePop();
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo terminar el ejercicio: $error')),
-        );
-      }
+      _avisarError('terminar el ejercicio', error);
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  /// Mantener presionado: confirma y termina solo con las series hechas.
+  Future<void> _terminarParcial(EjercicioBitacora ejercicio, int hechas, int total) async {
+    final seguro = await mostrarHojaInferior<bool>(
+      context: context,
+      constructor: (contexto) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          EncabezadoHoja(
+            titulo: 'Terminar con $hechas de $total series',
+            subtitulo: hechas == 0
+                ? 'No se guarda ninguna serie de este ejercicio. Tu día cuenta como completo si haces al menos el 80% de sus series.'
+                : 'Se guardan solo las series que marcaste. Tu día cuenta como completo si haces al menos el 80% de sus series.',
+          ),
+          const SizedBox(height: Medidas.espacio5),
+          BotonSecundario(
+            texto: 'Terminar así',
+            nivel: 2,
+            alPresionar: () => Navigator.pop(contexto, true),
+          ),
+          const SizedBox(height: Medidas.espacio2),
+          BotonTexto(texto: 'Seguir con el ejercicio', anchoCompleto: true, alPresionar: () => Navigator.pop(contexto)),
+        ],
+      ),
+    );
+    if (seguro != true || !mounted) return;
+    final repositorio = await ref.read(bitacoraRepositorioProvider.future);
+    if (repositorio == null) return;
+    setState(() => _guardando = true);
+    try {
+      await repositorio.completarEjercicio(ejercicio.idProgramado);
+      _ajustes.clear();
+      ref.read(temporizadorProvider.notifier).detener();
+      _refrescar(ejercicio.idProgramado);
+      if (mounted) Navigator.of(context).maybePop();
+    } catch (error) {
+      _avisarError('terminar el ejercicio', error);
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  /// "Volver a abrir": el ejercicio regresa a en curso.
+  Future<void> _reabrir(EjercicioBitacora ejercicio) async {
+    final repositorio = await ref.read(bitacoraRepositorioProvider.future);
+    if (repositorio == null) return;
+    setState(() => _guardando = true);
+    try {
+      await repositorio.completarEjercicio(ejercicio.idProgramado, completado: false);
+      _refrescar(ejercicio.idProgramado);
+    } catch (error) {
+      _avisarError('volver a abrir el ejercicio', error);
     } finally {
       if (mounted) setState(() => _guardando = false);
     }
@@ -270,15 +382,9 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
         _serieDelDescanso = serie.numero;
       }
       _ajustes.remove(serie.numero);
-      ref.invalidate(ejercicioBitacoraProvider(ejercicio.idProgramado));
-      ref.invalidate(diaDeHoyProvider);
-      ref.invalidate(sesionDeHoyProvider);
+      _refrescar(ejercicio.idProgramado);
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo guardar la serie: $error')),
-        );
-      }
+      _avisarError('guardar la serie', error);
     } finally {
       if (mounted) setState(() => _guardando = false);
     }
@@ -300,7 +406,7 @@ class _PantallaEjercicioState extends ConsumerState<PantallaEjercicio> {
         pesoKg: nueva.pesoKg,
         repeticiones: nueva.repeticiones,
       );
-      ref.invalidate(ejercicioBitacoraProvider(ejercicio.idProgramado));
+      _refrescar(ejercicio.idProgramado);
     } else {
       setState(() => _ajustes[serie.numero] = nueva);
     }

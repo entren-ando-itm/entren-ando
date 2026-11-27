@@ -25,6 +25,7 @@ class EjercicioDelDia {
     required this.series,
     required this.repeticiones,
     required this.completado,
+    this.seriesHechas = 0,
     this.pesoKg,
     this.descansoSeg = 90,
     this.trabajoSeg,
@@ -49,6 +50,12 @@ class EjercicioDelDia {
 
   /// true si hoy ya se marcó como completado en la bitácora.
   final bool completado;
+
+  /// Series guardadas hoy (ENT-121: "2/4" cuando se terminó parcialmente).
+  final int seriesHechas;
+
+  /// Terminado con menos series que las de la rutina.
+  bool get parcial => completado && seriesHechas < series;
 }
 
 /// Un día de la semana que sigue, para las franjas de abajo.
@@ -165,7 +172,15 @@ final diaDeHoyProvider = FutureProvider<DiaDeHoy?>((ref) async {
                  ON r.id_sesion = s.id_sesion AND r.eliminado = 0
                WHERE s.id_usuario = ? AND s.fecha = ? AND s.eliminado = 0
                  AND r.id_programado = ep.id_programado AND r.completado = 1
-             ) AS completado
+             ) AS completado,
+             (
+               SELECT COUNT(*)
+               FROM sesion_entrenamiento s3
+               JOIN registro_ejercicio r3 ON r3.id_sesion = s3.id_sesion AND r3.eliminado = 0
+               JOIN serie x ON x.id_registro = r3.id_registro AND x.eliminado = 0
+               WHERE s3.id_usuario = ? AND s3.fecha = ? AND s3.eliminado = 0
+                 AND r3.id_programado = ep.id_programado
+             ) AS series_hechas
       FROM ejercicio_programado ep
       -- ENT-59: si hoy se cambió por una alternativa, se muestra la alternativa.
       JOIN ejercicio e ON e.id_ejercicio = COALESCE((
@@ -181,7 +196,7 @@ final diaDeHoyProvider = FutureProvider<DiaDeHoy?>((ref) async {
         ON ue.id_ejercicio = e.id_ejercicio AND ue.id_usuario = ? AND ue.eliminado = 0
       WHERE ep.id_dia = ? AND ep.eliminado = 0
       ORDER BY ep.orden
-    ''', [idUsuario, Fechas.hoy(), idUsuario, Fechas.hoy(), idUsuario, diaHoy['id_dia']]);
+    ''', [idUsuario, Fechas.hoy(), idUsuario, Fechas.hoy(), idUsuario, Fechas.hoy(), idUsuario, diaHoy['id_dia']]);
 
     ejercicios = [
       for (final f in filas)
@@ -195,6 +210,7 @@ final diaDeHoyProvider = FutureProvider<DiaDeHoy?>((ref) async {
           descansoSeg: f['descanso_seg'] as int,
           trabajoSeg: f['trabajo_seg'] as int?,
           completado: f['completado'] == 1,
+          seriesHechas: f['series_hechas'] as int,
         ),
     ];
   }
