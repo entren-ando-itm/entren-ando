@@ -132,7 +132,7 @@ void main() {
       expect(find.text('CICLO nuevo'), findsOneWidget);
     });
 
-    testWidgets('Con el plan Gratuito lleno pide archivar el ciclo activo (${entrada.key})', (tester) async {
+    testWidgets('Con el plan Gratuito lleno manda a Premium sin archivar (${entrada.key})', (tester) async {
       final repo = _RutinaIaFalsa(activos: 1);
       await _abrir(tester, repo, entrada.value);
       await tester.ensureVisible(find.text('GUARDAR RUTINA'));
@@ -140,10 +140,9 @@ void main() {
       await tester.tap(find.text('GUARDAR RUTINA'));
       await tester.pumpAndSettle();
       expect(find.text('LÍMITE DE TU PLAN'), findsOneWidget);
+      expect(find.text('Archivar «Ciclo demo»'), findsNothing);
+      expect(find.text('Ver Premium'), findsOneWidget);
       expect(repo.guardada, isNull);
-      await tester.tap(find.text('Archivar «Ciclo demo»'));
-      await tester.pumpAndSettle();
-      expect(repo.archivadosAlGuardar, ['c1']);
     });
 
     testWidgets('Sin perfil manda a completarlo (${entrada.key})', (tester) async {

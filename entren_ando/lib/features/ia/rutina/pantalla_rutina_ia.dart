@@ -164,25 +164,17 @@ class _VistaPreviaState extends ConsumerState<_VistaPrevia> {
       _error = null;
     });
     try {
-      // RN-01: si el plan ya no permite otro ciclo activo, archivar uno o ver Premium.
-      var archivar = <String>[];
+      // RN-01 precisada: en Gratuito solo cabe 1 ciclo en total; si ya tiene
+      // uno, la rutina con IA es de Premium (no se archiva para hacer lugar).
+      const archivar = <String>[];
       final limite = await repositorio.rutinas.limite();
-      if (!limite.puedeActivarOtro) {
-        final activos = (await repositorio.rutinas.ciclos()).where((c) => c.activo).toList();
+      if (!limite.puedeCrearOtro) {
         if (!mounted) return;
-        final eleccion = await mostrarHojaLimiteCiclos(context, limite: limite, activos: activos);
+        final eleccion = await mostrarHojaLimiteCiclos(context, limite: limite, activos: const []);
         if (!mounted) return;
-        switch (eleccion) {
-          case ArchivarCiclo(:final idCiclo):
-            archivar = [idCiclo];
-          case VerPremium():
-            setState(() => _guardando = false);
-            await mostrarPremiumPronto(context);
-            return;
-          case null:
-            setState(() => _guardando = false);
-            return;
-        }
+        setState(() => _guardando = false);
+        if (eleccion is VerPremium) await context.push('/perfil/premium');
+        return;
       }
       final idCiclo = await repositorio.guardar(
         propuesta,

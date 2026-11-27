@@ -373,7 +373,8 @@ class RutinasRepositorio {
         );
       }
       final limite = await _limite(txn);
-      if (!limite.puedeActivarOtro) throw LimiteCiclosAlcanzado(limite);
+      // RN-01 precisada: en Gratuito cuentan todos los ciclos, no solo los activos.
+      if (!limite.puedeCrearOtro || !limite.puedeActivarOtro) throw LimiteCiclosAlcanzado(limite);
 
       if (idSolicitud != null) {
         final existe = await txn.rawQuery(
