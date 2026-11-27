@@ -329,12 +329,12 @@ class _FilaEjercicio extends StatelessWidget {
     );
   }
 
-  /// "4 × 12 · 120 kg", "4 × 8" o "3 × 45 s" para ejercicios por tiempo.
+  /// "4 × 12 · 120 kg", "4 × 8" (sin peso o con 0 kg) o "3 × 45 s" para ejercicios por tiempo.
   static String _detalle(EjercicioDelDia e) {
     if (e.trabajoSeg != null) return '${e.series} × ${e.trabajoSeg} s';
     final texto = '${e.series} × ${e.repeticiones}';
     final peso = e.pesoKg;
-    if (peso == null) return texto;
+    if (peso == null || peso <= 0) return texto;
     final kg = peso % 1 == 0 ? peso.toStringAsFixed(0) : peso.toStringAsFixed(1);
     return '$texto · $kg kg';
   }

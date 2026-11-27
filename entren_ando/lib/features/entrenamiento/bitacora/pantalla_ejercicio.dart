@@ -491,7 +491,8 @@ class _FilaSerie extends StatelessWidget {
             Expanded(
               child: Semantics(
                 button: true,
-                label: 'Serie ${serie.numero}: ${formatoKg(serie.pesoKg)} kilos, '
+                label: 'Serie ${serie.numero}: '
+                    '${serie.pesoKg > 0 ? '${formatoKg(serie.pesoKg)} kilos, ' : ''}'
                     '${serie.repeticiones} repeticiones. Toca para ajustar.',
                 child: InkWell(
                   onTap: alTocarNumeros,
@@ -499,13 +500,16 @@ class _FilaSerie extends StatelessWidget {
                   child: ExcludeSemantics(
                     child: Row(
                       children: [
-                        NumeroConUnidad(
-                          numero: formatoKg(serie.pesoKg),
-                          unidad: 'kg',
-                          tamano: 22,
-                          color: tinta,
-                        ),
-                        const SizedBox(width: Medidas.espacio4),
+                        // Sin peso (0 kg, por ejemplo abdominales): solo las repeticiones.
+                        if (serie.pesoKg > 0) ...[
+                          NumeroConUnidad(
+                            numero: formatoKg(serie.pesoKg),
+                            unidad: 'kg',
+                            tamano: 22,
+                            color: tinta,
+                          ),
+                          const SizedBox(width: Medidas.espacio4),
+                        ],
                         NumeroConUnidad(
                           numero: '${serie.repeticiones}',
                           unidad: 'reps',

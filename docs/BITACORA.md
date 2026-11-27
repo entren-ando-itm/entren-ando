@@ -245,6 +245,9 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   (Nuevo ciclo, Editar ciclo y rutina con IA) ya no se escriben: se eligen con el componente nuevo
   `CampoFecha` (calendario en hoja inferior, en español sin paquetes nuevos); el fin empieza vacío.
   Para el siguiente: usa `CampoFecha` para cualquier fecha que capture el usuario.
+  Sin peso (0 kg) se muestran solo las repeticiones ("10 reps", "3 × 10") en el ejercicio, Hoy,
+  el editor y el calendario; y en el detalle del calendario un ejercicio terminado sin series ya no
+  lleva la palomita verde (toca `pantalla_calendario.dart` de Paola).
 
 * **2026-11-25 · ENT-127, ENT-41 y RN-01 · Pablo · PR #25**
   Saludo según la hora en Hoy ("Buenas noches, Pablo", toca `pantalla_hoy.dart` de Paola); hoja de

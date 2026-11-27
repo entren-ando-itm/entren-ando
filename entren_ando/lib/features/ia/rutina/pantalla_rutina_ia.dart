@@ -277,7 +277,7 @@ String resumenPropuesto(EjercicioPropuesto e) {
   final peso = e.pesoKg;
   return [
     '${e.series} × ${e.repeticiones}',
-    if (peso != null) '${numero(peso)} kg',
+    if (peso != null && peso > 0) '${numero(peso)} kg',
     '${e.descansoSeg} s de descanso',
   ].join(' · ');
 }

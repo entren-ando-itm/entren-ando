@@ -265,7 +265,7 @@ String resumenProgramado(EjercicioProgramado e) {
   final trabajo = e.trabajoSeg;
   return [
     '${e.series} × ${e.repeticiones}',
-    if (peso != null) '${numero(peso)} kg',
+    if (peso != null && peso > 0) '${numero(peso)} kg',
     if (trabajo != null) '$trabajo s de trabajo',
     '${e.descansoSeg} s de descanso',
   ].join(' · ');
