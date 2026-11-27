@@ -217,6 +217,8 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | Rutas `/perfil/ciclos`, `/perfil/ciclos/:idCiclo` y `/perfil/ciclos/:idCiclo/dia/:idDia` | `lib/app.dart` | Abrir Mis ciclos, un ciclo o el editor de un día |
 | `alternativasRepositorioProvider` y `AlternativasRepositorio.consultaAlternativas` | `lib/features/rutinas/alternativas/alternativas_repositorio.dart` | Alternativas de un ejercicio por prioridad, con alias (para cambiar de ejercicio en la sesión, RF-04) |
 | Edge Function `generar-rutina` (`logica.ts`: `MENSAJES`, `ErrorRutina`, `extraerJson`) | `supabase/functions/generar-rutina/` | Rutina semanal con IA; el patrón (JWT, `solicitud_ia` con llave de servicio, errores en español) sirve para ENT-65 y ENT-68 |
+| `RutinasRepositorio.crearCicloCompleto` (`DiaNuevo`, `EjercicioNuevo`) | `lib/features/rutinas/rutinas_repositorio.dart` | Crear un ciclo con sus 7 días, ejercicios y alternativas en una transacción, con el límite RN-01 |
+| `servicioRutinaIaProvider` (`ServicioRutinaIa`) | `lib/features/ia/rutina/rutina_ia_repositorio.dart` | Llamar a una Edge Function con la sesión, espera de 30 s y error en español (patrón para ENT-65 y ENT-68) |
 
 ---
 
@@ -365,6 +367,16 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Pendiente: zona horaria de CDMX y UPDATE de `feedback_ia` (ver "Pendientes técnicos").
 
 ### Axel · perfil, catálogo, rutinas e IA (`lib/features/perfil`, `lib/features/rutinas`, `lib/features/ia`)
+
+* **2026-11-24 · ENT-58 (ENT-102, ENT-103) · Axel · PR #24**
+  Qué: Mis ciclos → "Generar con IA" (con `BotonConRed`): llama a `generar-rutina` (ENT-57) con el
+  perfil, la última medición, el equipo y el catálogo (peso corporal + equipo del usuario, solo id y
+  nombre oficial). La propuesta se edita en memoria (días, ejercicios, series, reps, peso, descanso)
+  y solo se guarda al tocar "Guardar rutina", con RN-01 (archivar el ciclo activo o ver Premium).
+  Por qué / decisión: se guarda con `RutinasRepositorio.crearCicloCompleto` en una sola transacción
+  y crea la `solicitud_ia` local con el mismo id de la nube (decisión 13). Espera máxima de 30 s.
+  Para el siguiente: necesita la sesión real de Supabase (no el demo sin `DEMO_PASSWORD`) y la
+  función publicada; sin eso muestra un error claro y ofrece crear la rutina a mano.
 
 * **2026-11-24 · ENT-57 (ENT-100, ENT-101) · Axel · PR #23**
   Qué: Edge Function `supabase/functions/generar-rutina`: valida el JWT, pide a Gemini Flash una

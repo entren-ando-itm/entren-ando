@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/conectividad/boton_con_red.dart';
 import '../../core/diseno.dart';
 import 'hoja_limite_ciclos.dart';
 import 'rutinas_proveedores.dart';
@@ -44,6 +45,18 @@ class PantallaCiclos extends ConsumerWidget {
             icono: Icons.add_rounded,
             alPresionar: ciclos.isLoading ? null : () => _nuevoCiclo(context, ref),
           ),
+          const SizedBox(height: Medidas.espacio2),
+          // ENT-58 (ENT-102): sin red se desactiva y sugiere crearla a mano (RNF-02).
+          BotonConRed(
+            alPresionar: () => _generarConIa(context, ref),
+            avisoSinRed: 'Sin conexión. La rutina con IA vuelve cuando tengas red; mientras, '
+                'crea tu ciclo a mano con "Nuevo ciclo".',
+            boton: (alPresionar) => BotonSecundario(
+              texto: 'Generar con IA',
+              icono: Icons.auto_awesome_outlined,
+              alPresionar: alPresionar,
+            ),
+          ),
           const SizedBox(height: Medidas.espacio5),
           ...ciclos.when(
             loading: () => const [Center(child: CircularProgressIndicator())],
@@ -85,6 +98,22 @@ class PantallaCiclos extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// ENT-58 con RN-01 precisada: en Gratuito la IA arma solo la primera
+  /// rutina. Se revisa ANTES de llamar a la IA para no gastar una solicitud
+  /// que después no se podría guardar.
+  Future<void> _generarConIa(BuildContext context, WidgetRef ref) async {
+    final repositorio = await ref.read(rutinasRepositorioProvider.future);
+    if (repositorio == null || !context.mounted) return;
+    final limite = await repositorio.limite();
+    if (!context.mounted) return;
+    if (limite.puedeCrearOtro) {
+      context.push('/perfil/ciclos/ia');
+      return;
+    }
+    final eleccion = await mostrarHojaLimiteCiclos(context, limite: limite, activos: const []);
+    if (eleccion is VerPremium && context.mounted) context.push('/perfil/premium');
   }
 
   Future<void> _nuevoCiclo(BuildContext context, WidgetRef ref) async {

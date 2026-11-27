@@ -103,7 +103,7 @@ class _ContenidoEditorState extends ConsumerState<_ContenidoEditor> {
     FocusScope.of(context).unfocus();
     final elegido = await mostrarHojaInferior<int>(
       context: context,
-      constructor: (contexto) => const _SelectorEjercicio(),
+      constructor: (contexto) => const SelectorEjercicio(),
     );
     if (elegido == null) return;
     await _guardar((repo) => repo.agregarEjercicio(widget.dia.idDia, elegido));
@@ -321,14 +321,15 @@ class _FilaEjercicio extends StatelessWidget {
 }
 
 /// Hoja para elegir un ejercicio del catálogo (con alias). Devuelve su id.
-class _SelectorEjercicio extends ConsumerStatefulWidget {
-  const _SelectorEjercicio();
+/// La usan el editor del día (ENT-47) y la vista previa de la IA (ENT-58).
+class SelectorEjercicio extends ConsumerStatefulWidget {
+  const SelectorEjercicio({super.key});
 
   @override
-  ConsumerState<_SelectorEjercicio> createState() => _SelectorEjercicioState();
+  ConsumerState<SelectorEjercicio> createState() => SelectorEjercicioState();
 }
 
-class _SelectorEjercicioState extends ConsumerState<_SelectorEjercicio> {
+class SelectorEjercicioState extends ConsumerState<SelectorEjercicio> {
   String _texto = '';
   List<EjercicioCatalogo>? _resultados;
   int _consulta = 0;

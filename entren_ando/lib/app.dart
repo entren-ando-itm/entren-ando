@@ -27,6 +27,7 @@ import 'features/perfil/pantalla_equipo.dart';
 import 'features/perfil/pantalla_mediciones.dart';
 import 'features/perfil/pantalla_perfil.dart';
 import 'features/rutinas/alternativas/pantalla_alternativas.dart';
+import 'features/ia/rutina/pantalla_rutina_ia.dart';
 import 'features/rutinas/pantalla_ciclo.dart';
 import 'features/rutinas/pantalla_ciclos.dart';
 import 'features/rutinas/pantalla_editor_dia.dart';
@@ -122,6 +123,13 @@ final GoRouter rutas = GoRouter(
                 parentNavigatorKey: navegadorRaiz,
                 builder: (context, state) => const PantallaCiclos(),
                 routes: [
+                  // ENT-58: generar la rutina con IA. Va antes de ':idCiclo' para que
+                  // 'ia' no se tome como id de un ciclo.
+                  GoRoute(
+                    path: 'ia',
+                    parentNavigatorKey: navegadorRaiz,
+                    builder: (context, state) => const PantallaRutinaIa(),
+                  ),
                   GoRoute(
                     path: ':idCiclo',
                     parentNavigatorKey: navegadorRaiz,
