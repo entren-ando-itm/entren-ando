@@ -52,6 +52,17 @@ void main() {
     expect(mensaje, isNot(contains('no está registrado')));
   });
 
+  test('Eliminar cuenta: hay que escribir ELIMINAR (ENT-51)', () {
+    expect(confirmaEliminar('ELIMINAR'), isTrue);
+    expect(confirmaEliminar('  eliminar '), isTrue);
+    expect(confirmaEliminar('Eliminar'), isTrue);
+    expect(confirmaEliminar('ELIMINA'), isFalse);
+    expect(confirmaEliminar('borrar'), isFalse);
+    expect(confirmaEliminar(''), isFalse);
+    expect(confirmaEliminar(null), isFalse);
+    expect(MensajesCuenta.eliminarSinRed, contains('internet'));
+  });
+
   group('Redirección según la sesión (ENT-41)', () {
     const sesion = SesionActual(idUsuario: 'u', correo: 'u@correo.com');
 

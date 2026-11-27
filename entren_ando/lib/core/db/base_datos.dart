@@ -86,6 +86,17 @@ class BaseDatos {
     }
   }
 
+  /// Borra la base local y su llave (ENT-51, eliminar mi cuenta y mis datos).
+  /// Funciona también en la app final. La siguiente lectura crea una base
+  /// nueva y vacía (solo con el catálogo), cifrada con una llave nueva.
+  static Future<void> borrarTodo() async {
+    await _abriendo;
+    await _bd?.close();
+    _bd = null;
+    await deleteDatabase(await ruta());
+    await LlaveCifrado.borrar();
+  }
+
   /// Solo en debug: borra la base. La siguiente lectura la crea de nuevo
   /// con el catálogo y los datos de prueba (con fechas de hoy).
   static Future<void> reiniciarDatosPrueba() async {

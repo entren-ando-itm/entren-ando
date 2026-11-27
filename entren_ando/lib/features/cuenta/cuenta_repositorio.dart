@@ -59,6 +59,13 @@ class ValidarCuenta {
 ///
 /// Criterio 4 de ENT-41: si el correo o la contraseña están mal, el mensaje es
 /// el mismo en los dos casos, para no revelar si un correo tiene cuenta.
+/// Palabra que hay que escribir para eliminar la cuenta (ENT-51 criterio 1).
+const String palabraEliminar = 'ELIMINAR';
+
+/// true si el texto confirma el borrado (sin espacios a los lados y sin
+/// importar mayúsculas, porque el teclado del celular las cambia solo).
+bool confirmaEliminar(String? texto) => (texto ?? '').trim().toUpperCase() == palabraEliminar;
+
 class MensajesCuenta {
   MensajesCuenta._();
 
@@ -76,6 +83,10 @@ class MensajesCuenta {
       'Te enviamos un correo para confirmar tu cuenta. Después inicia sesión.';
   static const String correoEnUso = 'No se pudo crear la cuenta con ese correo. Si ya tienes una, inicia sesión.';
   static const String contrasenaDebil = 'Esa contraseña no se puede usar. Prueba con una más larga.';
+  static const String eliminarSinRed =
+      'Necesita internet. Tu cuenta y tus datos siguen guardados; vuelve a intentarlo con conexión.';
+  static const String eliminarDemo = 'El usuario demo no se puede eliminar. Entra con una cuenta de prueba.';
+  static const String eliminarError = 'No se pudo eliminar tu cuenta. No se borró nada; intenta de nuevo.';
   static const String correoInvalido = 'Ese correo no es válido. Revisa que esté bien escrito.';
   static const String demasiadosIntentos =
       'Hiciste muchos intentos seguidos. Espera unos minutos y vuelve a intentar.';

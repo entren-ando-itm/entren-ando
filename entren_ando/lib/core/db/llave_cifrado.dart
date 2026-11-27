@@ -24,4 +24,8 @@ class LlaveCifrado {
     await _almacen.write(key: _nombre, value: nueva);
     return nueva;
   }
+
+  /// Borra la llave del Keystore (ENT-51, eliminar cuenta). La siguiente vez
+  /// que se abra la base se genera una llave nueva.
+  static Future<void> borrar() => _almacen.delete(key: _nombre);
 }

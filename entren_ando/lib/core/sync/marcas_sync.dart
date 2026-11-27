@@ -43,6 +43,14 @@ class MarcasSync {
     return texto == null ? null : DateTime.tryParse(texto)?.toLocal();
   }
 
+  /// Borra todas las marcas de [idUsuario] (ENT-51, al eliminar la cuenta).
+  Future<void> borrarUsuario(String idUsuario) async {
+    final prefijo = _llave(idUsuario, '');
+    for (final llave in _prefs.getKeys().where((k) => k.startsWith(prefijo)).toList()) {
+      await _prefs.remove(llave);
+    }
+  }
+
   Future<void> guardarSincronizacion(String idUsuario, DateTime cuando) =>
       _prefs.setString(_llave(idUsuario, 'ultima'), cuando.toUtc().toIso8601String());
 }
