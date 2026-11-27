@@ -33,8 +33,12 @@ def guardar_de_nube(bd, t, remota, forzar=False):
     if local and not forzar:
         cel, nub = parse(local[0]), parse(remota['actualizado_en'])
         if cel and nub:
-            if local[1] == 1 and cel > nub: return False
-            if local[1] != 1 and cel == nub: return False
+            if (local[1] == 1 and cel > nub) or (local[1] != 1 and cel == nub):
+                if t['nombre'] != 'usuario': return False
+                cambios = bd.execute('UPDATE usuario SET id_plan = ? WHERE id_usuario = ? AND id_plan <> ?',
+                                     (remota['id_plan'], remota['id_usuario'], remota['id_plan']))
+                bd.commit()
+                return cambios.rowcount > 0
     fila = a_local(remota, cols); cs = list(fila)
     upd = ', '.join(f'{c} = excluded.{c}' for c in cs if c not in t['llaves'])
     bd.execute(f"INSERT INTO {t['nombre']} ({', '.join(cs)}) VALUES ({', '.join('?'*len(cs))}) ON CONFLICT ({', '.join(t['llaves'])}) DO UPDATE SET {upd}", [fila[c] for c in cs])
@@ -45,7 +49,7 @@ def bajar(bd, completa=False):
     n = 0
     for t in tablas_bajar():
         desde = None if completa else MARCAS.get(t['nombre'])
-        donde = f"WHERE actualizado_en >= '{desde}'" if desde else ''
+        donde = f"WHERE actualizado_en >= '{desde}'" if desde and t['nombre'] != 'usuario' else ''
         orden = ', '.join(['actualizado_en', *t['llaves']])
         mas = desde
         for f in nube(f"SELECT * FROM {t['nombre']} {donde} ORDER BY {orden}"):

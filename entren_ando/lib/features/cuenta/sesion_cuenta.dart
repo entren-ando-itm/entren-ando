@@ -64,6 +64,7 @@ class Cuenta {
   static Future<void> entrarComoDemo() async {
     if (!kDebugMode) return;
     await _escribirDemo(true);
+    bienvenida.value = '¡Hola! Entraste como usuario demo.';
     sesionActual.value = _sesionDemo;
     final cliente = ClienteSupabase.cliente;
     if (cliente == null || ClienteSupabase.contrasenaDemo.isEmpty) return;
@@ -77,6 +78,22 @@ class Cuenta {
     }
   }
 
+  /// Mensaje de bienvenida que muestra la app al entrar (lo lee
+  /// `EsqueletoPestanas` y lo limpia). null = no hay nada que mostrar.
+  static final ValueNotifier<String?> bienvenida = ValueNotifier<String?>(null);
+
+  static String _nombreDe(User usuario, String correo) {
+    final nombre = usuario.userMetadata?['nombre'];
+    return nombre is String && nombre.trim().isNotEmpty ? nombre.trim() : correo.split('@').first;
+  }
+
+  /// Errores de Supabase Auth que no son "datos incorrectos".
+  static String? _errorConocido(AuthException e) {
+    if (e.code == 'email_address_invalid') return MensajesCuenta.correoInvalido;
+    if (e.statusCode == '429' || (e.code ?? '').contains('rate_limit')) return MensajesCuenta.demasiadosIntentos;
+    return null;
+  }
+
   static Future<ResultadoCuenta> iniciarSesion(String correo, String contrasena) async {
     final cliente = ClienteSupabase.cliente;
     if (cliente == null) return const ResultadoCuenta.mal(MensajesCuenta.sinSupabase);
@@ -87,11 +104,13 @@ class Cuenta {
       if (usuario == null) return const ResultadoCuenta.mal(MensajesCuenta.datosIncorrectos);
       await _asegurarUsuarioLocal(usuario);
       await _escribirDemo(false);
+      bienvenida.value = '¡Hola de nuevo, ${_nombreDe(usuario, limpio)}!';
       sesionActual.value = SesionActual(idUsuario: usuario.id, correo: usuario.email ?? limpio);
       return const ResultadoCuenta.bien();
     } on AuthRetryableFetchException {
       return const ResultadoCuenta.mal(MensajesCuenta.errorGeneral);
     } on AuthException catch (e) {
+      if (_errorConocido(e) case final conocido?) return ResultadoCuenta.mal(conocido);
       if (e.message.toLowerCase().contains('not confirmed')) {
         return const ResultadoCuenta.mal(MensajesCuenta.correoSinConfirmar);
       }
@@ -132,11 +151,13 @@ class Cuenta {
       }
       await _asegurarUsuarioLocal(usuario, nombre: nombreLimpio);
       await _escribirDemo(false);
+      bienvenida.value = '¡Bienvenido a Entren-Ando, $nombreLimpio! Tu cuenta está lista.';
       sesionActual.value = SesionActual(idUsuario: usuario.id, correo: usuario.email ?? limpio);
       return const ResultadoCuenta.bien();
     } on AuthRetryableFetchException {
       return const ResultadoCuenta.mal(MensajesCuenta.errorGeneral);
     } on AuthException catch (e) {
+      if (_errorConocido(e) case final conocido?) return ResultadoCuenta.mal(conocido);
       final mensaje = e.message.toLowerCase();
       if (mensaje.contains('already')) return const ResultadoCuenta.mal(MensajesCuenta.correoEnUso);
       if (mensaje.contains('password')) return const ResultadoCuenta.mal(MensajesCuenta.contrasenaDebil);

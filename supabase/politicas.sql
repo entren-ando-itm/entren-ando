@@ -157,14 +157,10 @@ CREATE POLICY feedback_ia_cambiar ON feedback_ia
   FOR UPDATE TO authenticated
   USING (id_usuario = (select auth.uid())) WITH CHECK (id_usuario = (select auth.uid()));
 
--- suscripcion: solo mis compras (Premium simulado: la app las crea).
+-- suscripcion: solo mis compras. Después de este script, aplicar ajustes_ent52.sql
+-- para reservar la escritura y el cambio de usuario.id_plan al servidor.
 CREATE POLICY suscripcion_leer ON suscripcion
   FOR SELECT TO authenticated USING (id_usuario = (select auth.uid()));
-CREATE POLICY suscripcion_crear ON suscripcion
-  FOR INSERT TO authenticated WITH CHECK (id_usuario = (select auth.uid()));
-CREATE POLICY suscripcion_cambiar ON suscripcion
-  FOR UPDATE TO authenticated
-  USING (id_usuario = (select auth.uid())) WITH CHECK (id_usuario = (select auth.uid()));
 
 
 -- ---------------------------------------------------------------------

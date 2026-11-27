@@ -20,7 +20,15 @@ void main() {
 
   const catalogos = {'plan', 'equipo', 'ejercicio'};
   // Las crea el servidor (Edge Functions); feedback_ia se sube aparte (solo leido).
-  const delServidor = {'solicitud_ia', 'evento_pago', 'feedback_ia'};
+  const delServidor = {'suscripcion', 'solicitud_ia', 'evento_pago', 'feedback_ia'};
+
+  test('Una edición sin red sube el nombre y conserva el plan del servidor', () {
+    final usuario = MotorSync.aNube(MotorSync.tablas.first, {
+      'id_plan': 1, 'nombre': 'Nombre editado', 'pendiente_sync': 1,
+    });
+    expect(usuario.containsKey('id_plan'), isFalse);
+    expect(usuario['nombre'], 'Nombre editado');
+  });
 
   test('Se suben todas las tablas del usuario, sin catálogos ni las del servidor', () {
     final todas = llavesForaneas().keys.toSet();

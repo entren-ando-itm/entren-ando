@@ -12,6 +12,23 @@ void main() {
     expect(premium.puedeActivarOtro, isTrue);
   });
 
+  test('Gratuito: 1 ciclo en total; los archivados de Premium solo se consultan', () {
+    const sinCiclos = LimiteCiclos(plan: 'Gratuito', activos: 0, total: 0, maximo: 1);
+    const conUno = LimiteCiclos(plan: 'Gratuito', activos: 1, total: 1, maximo: 1);
+    const unoArchivado = LimiteCiclos(plan: 'Gratuito', activos: 0, total: 1, maximo: 1);
+    const exPremium = LimiteCiclos(plan: 'Gratuito', activos: 1, total: 3, maximo: 1);
+    const exPremiumSinActivo = LimiteCiclos(plan: 'Gratuito', activos: 0, total: 3, maximo: 1);
+    const premium = LimiteCiclos(plan: 'Premium', activos: 4, total: 6);
+    expect(sinCiclos.puedeCrearOtro, isTrue);
+    expect(conUno.puedeCrearOtro, isFalse);
+    expect(unoArchivado.puedeCrearOtro, isFalse);
+    expect(unoArchivado.puedeReactivar, isTrue);
+    expect(exPremium.puedeReactivar, isFalse);
+    expect(exPremiumSinActivo.puedeReactivar, isFalse);
+    expect(premium.puedeCrearOtro, isTrue);
+    expect(premium.puedeReactivar, isTrue);
+  });
+
   test('Hoy usa el ciclo activo con fecha_inicio más reciente', () {
     final sql = RutinasRepositorio.consultaCicloParaHoy;
     expect(sql, contains("estado = 'activo'"));

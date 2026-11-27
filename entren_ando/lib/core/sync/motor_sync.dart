@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../db/plan_local.dart';
 import 'marcas_sync.dart';
 
 /// Una tabla del usuario que se sube a Supabase.
@@ -84,7 +85,7 @@ class ResultadoSync {
 ///   la app que lo hace). Si la fila cambió mientras subía, se queda pendiente.
 /// * Los borrados viajan como `eliminado = true`. Nunca borra filas locales.
 /// * Solo sube las filas del usuario: las tablas hijas se filtran por su padre.
-/// * Los catálogos no se suben. `solicitud_ia` y `evento_pago` los crea el
+/// * Los catálogos no se suben. `suscripcion`, `solicitud_ia` y `evento_pago` los crea el
 ///   servidor (Edge Functions) y el celular guarda el mismo id; de
 ///   `feedback_ia` solo se sube `leido`.
 /// * Si la nube rechaza un cambio por la regla de los 30 días (RF-10, código
@@ -114,7 +115,6 @@ class MotorSync {
     TablaSync('medicion_biometrica', ['id_medicion']),
     TablaSync('usuario_equipo', ['id_usuario', 'id_equipo']),
     TablaSync('usuario_ejercicio', ['id_usuario', 'id_ejercicio']),
-    TablaSync('suscripcion', ['id_suscripcion'], booleanas: ['renovacion_automatica']),
     TablaSync('ciclo_rutina', ['id_ciclo']),
     TablaSync(
       'dia_rutina',
@@ -313,7 +313,11 @@ class MotorSync {
         var consulta = _nube.from(tabla.nombre).select();
         // gte y no gt: si dos filas tienen la misma hora no se pierde ninguna;
         // las que ya estaban se reconocen y no se vuelven a escribir.
-        if (desde != null) consulta = consulta.gte('actualizado_en', desde);
+        // La única fila de la cuenta trae el plan incluso si la subida de una
+        // edición sin red acaba de devolver actualizado_en a una fecha anterior.
+        if (desde != null && tabla.nombre != 'usuario') {
+          consulta = consulta.gte('actualizado_en', desde);
+        }
         var ordenada = consulta.order('actualizado_en', ascending: true);
         for (final llave in tabla.llaves) {
           ordenada = ordenada.order(llave, ascending: true);
@@ -336,6 +340,10 @@ class MotorSync {
       }
     }
     if (completa) await marcas.guardarRevisionCompleta(idUsuario, DateTime.now());
+    // ENT-52: si el plan bajó a Gratuito (cancelación o vencimiento en el
+    // servidor), archiva los ciclos que sobran.
+    await PlanLocal.revisarVencimiento(_bd, idUsuario);
+    bajadas += await PlanLocal.ajustarCiclosAlPlan(_bd, idUsuario);
     return bajadas;
   }
 
@@ -399,9 +407,13 @@ class MotorSync {
       if (enCelular != null && deNube != null) {
         final pendiente = local.first['pendiente_sync'] == 1;
         // Gana el más reciente: el cambio del celular se sube la próxima vez.
-        if (pendiente && enCelular.isAfter(deNube)) return false;
+        final conservarLocal = pendiente && enCelular.isAfter(deNube);
         // Ya la tenía igual (por ejemplo, la acaba de subir este celular).
-        if (!pendiente && enCelular.isAtSameMomentAs(deNube)) return false;
+        if (conservarLocal || (!pendiente && enCelular.isAtSameMomentAs(deNube))) {
+          if (tabla.nombre != 'usuario') return false;
+          final cambios = await aplicarPlanConfirmado(_bd, enNube['id_usuario'] as String, enNube['id_plan'] as int);
+          return cambios > 0;
+        }
       }
     }
     final fila = aLocal(enNube, await _columnas(tabla.nombre));
@@ -419,6 +431,11 @@ class MotorSync {
   }
 
   final Map<String, Set<String>> _columnasPorTabla = {};
+
+  /// Copia un plan confirmado por el servidor sin alterar cambios pendientes del perfil.
+  static Future<int> aplicarPlanConfirmado(DatabaseExecutor bd, String usuario, int plan) =>
+      bd.rawUpdate('UPDATE usuario SET id_plan = ? WHERE id_usuario = ? AND id_plan <> ?',
+          [plan, usuario, plan]);
 
   Future<Set<String>> _columnas(String tabla) async {
     final conocidas = _columnasPorTabla[tabla];
@@ -461,6 +478,7 @@ class MotorSync {
   @visibleForTesting
   static Map<String, Object?> aNube(TablaSync tabla, Map<String, Object?> fila) {
     final resultado = Map<String, Object?>.of(fila);
+    if (tabla.nombre == 'usuario') resultado.remove('id_plan');
     for (final columna in ['eliminado', ...tabla.booleanas]) {
       final valor = resultado[columna];
       if (valor is num) resultado[columna] = valor != 0;
