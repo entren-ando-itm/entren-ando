@@ -5,3 +5,8 @@ ENT-43 (ajustes y cerrar sesión), ENT-51 (eliminar mi cuenta y mis datos) y ENT
 
 Cuando exista el inicio de sesión, `usuarioActualIdProvider` (lib/core/db/usuario_actual.dart)
 debe devolver el id del usuario que entró. Las demás pantallas ya lo usan.
+
+La pantalla `/perfil/premium` (ENT-94) muestra el catálogo local incluso sin red. En debug
+permite activar la prueba con la sesión de Supabase de esa cuenta. Al recibir la confirmación,
+actualiza el plan local y refresca las pantallas que consultan los límites. Consulta el
+[contrato de activación](../../../../supabase/functions/premium-prueba/LEEME.md).

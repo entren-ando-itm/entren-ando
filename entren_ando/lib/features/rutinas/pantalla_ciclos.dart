@@ -222,7 +222,7 @@ class _HojaDatosCicloState extends State<HojaDatosCiclo> {
         return;
       }
       final limite = await repositorio.limite();
-      if (limite.puedeActivarOtro) {
+      if (limite.puedeCrearOtro) {
         final id = await repositorio.crearCiclo(nombre: nombre, fechaInicio: inicio, fechaFin: fin);
         if (mounted) Navigator.pop(context, id);
         return;
@@ -244,7 +244,7 @@ class _HojaDatosCicloState extends State<HojaDatosCiclo> {
           if (mounted) Navigator.pop(context, id);
         case VerPremium():
           setState(() => _guardando = false);
-          await mostrarPremiumPronto(context);
+          await context.push('/perfil/premium');
         case null:
           setState(() => _guardando = false);
       }

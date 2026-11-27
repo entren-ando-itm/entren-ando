@@ -18,3 +18,4 @@ $P -f docs/12_catalogo_semilla.sql
 $P -f supabase/politicas.sql
 $P -f supabase/ajustes_ent44.sql >/dev/null
 $P -f supabase/ajustes_ent53.sql >/dev/null 2>&1
+$P -f supabase/ajustes_ent52.sql

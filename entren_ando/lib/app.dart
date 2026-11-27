@@ -13,7 +13,9 @@ import 'features/calendario/pantalla_calendario.dart';
 import 'features/cuenta/pantalla_aviso.dart';
 import 'features/cuenta/pantalla_cuenta.dart';
 import 'features/cuenta/pantalla_inicio_sesion.dart';
+import 'features/cuenta/pantalla_premium.dart';
 import 'features/cuenta/pantalla_registro.dart';
+import 'features/cuenta/sesion_cuenta.dart';
 import 'features/entrenamiento/bitacora/pantalla_ejercicio.dart';
 import 'features/entrenamiento/pantalla_hoy.dart';
 import 'features/nube/pantalla_nube_prueba.dart';
@@ -154,6 +156,11 @@ final GoRouter rutas = GoRouter(
                   ),
                 ],
               ),
+              GoRoute(
+                path: 'premium',
+                parentNavigatorKey: navegadorRaiz,
+                builder: (context, state) => const PantallaPremium(),
+              ),
               // ENT-43: cuenta, aviso de privacidad y cerrar sesión (sin la barra).
               GoRoute(
                 path: 'cuenta',
@@ -215,6 +222,56 @@ class EntrenAndoApp extends ConsumerWidget {
   }
 }
 
+/// Al entrar o crear la cuenta, saluda con una hoja inferior (ENT-41) para
+/// que el cambio de pantalla no se sienta brusco.
+class _Bienvenida extends StatefulWidget {
+  const _Bienvenida({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_Bienvenida> createState() => _BienvenidaState();
+}
+
+class _BienvenidaState extends State<_Bienvenida> {
+  @override
+  void initState() {
+    super.initState();
+    Cuenta.bienvenida.addListener(_mostrar);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _mostrar());
+  }
+
+  @override
+  void dispose() {
+    Cuenta.bienvenida.removeListener(_mostrar);
+    super.dispose();
+  }
+
+  void _mostrar() {
+    final mensaje = Cuenta.bienvenida.value;
+    if (mensaje == null || !mounted) return;
+    Cuenta.bienvenida.value = null;
+    mostrarHojaInferior<void>(
+      context: context,
+      constructor: (contexto) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          EncabezadoHoja(
+            titulo: mensaje,
+            subtitulo: 'Iniciaste sesión. Tus datos se guardan en este celular y se respaldan en la nube.',
+          ),
+          const SizedBox(height: Medidas.espacio5),
+          BotonSecundario(texto: 'Empezar', alPresionar: () => Navigator.pop(contexto)),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
 /// Las 4 pestañas (Hoy, Calendario, Comidas y Perfil) con la barra en forma
 /// de píldora que flota sobre el contenido.
 class EsqueletoPestanas extends StatelessWidget {
@@ -233,7 +290,7 @@ class EsqueletoPestanas extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      body: navegacion,
+      body: _Bienvenida(child: navegacion),
       bottomNavigationBar: BarraNavegacion(
         destinos: _destinos,
         indice: navegacion.currentIndex,

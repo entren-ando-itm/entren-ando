@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
+import 'core/db/base_datos.dart';
+import 'core/db/plan_local.dart';
+import 'core/db/usuario_actual.dart';
 import 'core/sync/segundo_plano.dart';
 import 'core/tema/modo_tema.dart';
 import 'features/cuenta/sesion_cuenta.dart';
@@ -20,6 +23,9 @@ Future<void> main() async {
   // Sesión guardada: si ya entraste antes, abre directo en Hoy, aun sin
   // internet (ENT-41).
   await Cuenta.cargar();
+  // ENT-52: si la prueba de Premium venció sin red, vuelve a Gratuito.
+  final usuario = sesionActual.value?.idUsuario;
+  if (usuario != null) await PlanLocal.revisarVencimiento(await BaseDatos.instancia(), usuario);
   // Sincronización cada 15 minutos con red, aunque la app esté cerrada (ENT-53).
   await SegundoPlano.programar();
   runApp(const ProviderScope(child: EntrenAndoApp()));

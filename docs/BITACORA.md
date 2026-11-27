@@ -75,8 +75,14 @@ Lo que ya se acordó. La IA no debe proponer lo contrario sin hablarlo en el dai
 5. **IA:** siempre a través de una Edge Function de Supabase; la llave `GEMINI_API_KEY` es un secreto
    de Supabase (ENT-28), nunca va en la app. A la IA se manda `id_ejercicio` y `nombre_oficial`,
    **nunca el alias** del usuario (ENT-17).
-6. **Freemium:** los límites se leen de la tabla `plan` (NULL = ilimitado). Premium es simulado; en
-   Supabase cada usuario puede cambiar su propio `id_plan` y se aceptó así porque no hay cobro real.
+6. **Freemium (actualizado en ENT-52):** los límites se leen de `plan` (NULL = ilimitado).
+   El servidor controla `usuario.id_plan`, `suscripcion` y `evento_pago`. La app conserva una copia
+   para uso sin red. La prueba dura 30 días y permite reactivación. Al cancelar (de inmediato) o
+   vencer, se vuelve a Gratuito y se archivan los ciclos excedentes conservando el más reciente.
+   **RN-01 precisada por el PO (25 de noviembre):** en Gratuito el límite cuenta todos los ciclos
+   (activos y archivados): no se puede crear otro ni archivar y reactivar para tener varias rutinas;
+   se edita el que ya se tiene. Los ciclos extra al dejar Premium quedan archivados solo para
+   consultarlos. El historial de entrenamientos no se pierde. Ver `LimiteCiclos`.
 7. **Solicitudes de IA:** la app no puede crear filas en `solicitud_ia` ni en `feedback_ia` en la
    nube; las crea la Edge Function. Así nadie se salta el límite de 3 escaneos al día.
 8. **Sin red:** lo que necesita internet (IA, cámara, inicio de sesión) usa `BotonConRed`; la
@@ -135,6 +141,18 @@ Cosas detectadas que todavía no se arreglan. Quien la resuelva, la tacha (~~as�
 
 ---
 
+## Ideas para después (backlog del PO)
+
+Salieron de probar la app el 25 de noviembre. No están en ningún sprint; si sobra tiempo se
+platican en la planeación. Ya están en Jira: ENT-121 a ENT-128.
+
+* **Progreso por ejercicio:** gráfica del peso de un ejercicio en las últimas semanas (encaja con ENT-71).
+* **Racha de entrenamiento:** "Llevas 5 semanas cumpliendo tu rutina" en Hoy, con los datos del calendario.
+* **Notas por ejercicio:** una nota corta ("agarre cerrado") que aparece la siguiente vez que lo haces.
+* **Recordatorio para entrenar:** notificación local a la hora que elijas, solo en los días de tu rutina.
+
+---
+
 ## Trampas conocidas
 
 Problemas que ya le pasaron a alguien, con su solución.
@@ -181,6 +199,7 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `hayRedProvider` y `ref.read(hayRedProvider.notifier).revisar()` | `lib/core/conectividad/conectividad.dart` | Saber si hay internet de verdad y reaccionar cuando vuelve la red (ENT-44) |
 | `BotonConRed` | `lib/core/conectividad/boton_con_red.dart` | Botones que necesitan internet |
 | `ClienteSupabase.cliente` | `lib/features/nube/cliente_supabase.dart` | El cliente de Supabase (null si no hay `.env`). ENT-41 inicia sesión con él |
+| Edge Function `premium-prueba` | `supabase/functions/premium-prueba/` | ENT-93 activa Premium para la cuenta autenticada. Devuelve `id_plan`, `id_suscripcion` y `fecha_expiracion` para ENT-94. |
 | `sincronizacionProvider` y `.notifier.sincronizar()` | `lib/core/sync/sincronizacion.dart` | Estado de la sincronización (`ultimaVez`, `bajadas`, `descartadas`) y sincronizar ya: sube y baja (ENT-54) |
 | `MarcasSync` | `lib/core/sync/marcas_sync.dart` | Hora de la última sincronización por usuario (también la de segundo plano) |
 | `IconoSincronizacion` | `lib/features/nube/indicador_sync.dart` | Icono pequeño con el estado del respaldo (ENT-54) |
@@ -189,7 +208,8 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 | `resumenPerfilProvider`, `perfilRepositorioProvider` | `lib/features/perfil/perfil_repositorio.dart` | Objetivo, nivel, días por semana, última medición y equipo (lo necesita la IA, ENT-58) |
 | `diaDeHoyProvider` (`DiaDeHoy`, `EjercicioDelDia`) | `lib/features/entrenamiento/hoy_repositorio.dart` | Rutina de hoy con alias, descanso y avance; también los días que vienen |
 | `TemporizadorFlotante`, `temporizadorProvider` | `lib/features/entrenamiento/temporizador/` | Descanso o trabajo con hora de fin (lo usa ENT-49) |
-| `BitacoraRepositorio`, `ejercicioBitacoraProvider`, `sesionDeHoyProvider` | `lib/features/entrenamiento/bitacora/` | Series de hoy de un ejercicio (guardar, quitar y precarga), terminar ejercicio, estado y comentario de la sesión; ruta `/hoy/ejercicio/:idProgramado` |
+| `mesCalendarioProvider`, `detalleDiaProvider`, `colorearMes` | `lib/features/calendario/` | Colores del mes y detalle de un día (lo usan ENT-70 y ENT-71) |
+| `BitacoraRepositorio`, `ejercicioBitacoraProvider`, `sesionDeHoyProvider` | `lib/features/entrenamiento/bitacora/` | Series de hoy de un ejercicio (guardar, quitar y precarga), terminar ejercicio, estado y comentario de la sesión, alternativas y "Cambiar solo hoy" (`alternativasProvider`, `sustituir`); ruta `/hoy/ejercicio/:idProgramado` |
 | Rutas `/perfil/catalogo`, `/perfil/editar`, `/perfil/mediciones`, `/perfil/equipo` | `lib/app.dart` | Abrir esas pantallas con `context.push(...)` |
 | `rutinasRepositorioProvider`, `RutinasRepositorio.consultaCicloParaHoy` y `consultaEjerciciosDelDia` | `lib/features/rutinas/rutinas_repositorio.dart` | Ciclos, días y ejercicios programados; el ciclo que usa Hoy (lo necesita ENT-58 para guardar la rutina de la IA) |
 | Rutas `/perfil/ciclos`, `/perfil/ciclos/:idCiclo` y `/perfil/ciclos/:idCiclo/dia/:idDia` | `lib/app.dart` | Abrir Mis ciclos, un ciclo o el editor de un día |
@@ -205,6 +225,31 @@ Lo que un módulo ya ofrece a los demás. Úsalo en vez de programarlo otra vez.
 Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
 
 ### Pablo · base, diseño y cuenta (`lib/core/db`, `lib/core/tema`, `lib/core/componentes`, `lib/features/cuenta`)
+
+* **2026-11-25 · ENT-127, ENT-41 y RN-01 · Pablo · PR #25**
+  Saludo según la hora en Hoy ("Buenas noches, Pablo", toca `pantalla_hoy.dart` de Paola); hoja de
+  bienvenida al entrar; mensajes de Supabase (correo inválido, demasiados intentos); la
+  sincronización también arranca al recuperar la sesión y al cambiar de usuario (toca
+  `sincronizacion.dart` de Ángel); RN-01 precisada: Gratuito tiene 1 ciclo en total (toca rutinas de
+  Axel, ver decisión 6).
+
+* **2026-11-24 · ENT-52 (ENT-95) · Pablo · PR pendiente**
+  Cancelar Premium (de inmediato) y vencimiento a los 30 días: funciones `cancelar_premium_prueba` y
+  `vencer_premium_prueba` (pg_cron diario) en `ajustes_ent52.sql`, y `PlanLocal` en `lib/core/db` para
+  archivar los ciclos que sobran y vencer sin red. La compra simulada ya funciona también en la
+  versión release (entrega escolar); se apaga con el secreto `PREMIUM_PRUEBA_HABILITADA=false`.
+  Para el siguiente: después de bajar cambios, el motor llama a `PlanLocal` (toca `motor_sync.dart` de Ángel).
+
+* **2026-11-24 · ENT-52 (ENT-94) · Pablo · PR pendiente**
+  Premium abre desde Ajustes, Cuenta y el límite de Mis ciclos en `/perfil/premium`.
+  Precio y beneficios salen del catálogo local. En debug, la compra con red copia el plan
+  confirmado por ENT-93 sin alterar las ediciones pendientes del perfil. Verificado en Pixel 4
+  en modo avión: se ven precio y límites, y el botón queda desactivado. ENT-95 agrega la baja.
+
+* **2026-11-24 · ENT-52 (ENT-93) · Pablo · PR pendiente**
+  Activación de 30 días en una transacción, con una sola compra al repetirla. La sincronización
+  conserva el plan del servidor al subir cambios del perfil. Aplicar `supabase/ajustes_ent52.sql`
+  y publicar la función en el entorno de prueba. Quedan la pantalla, la baja y el vencimiento.
 
 * **2026-11-18 · ENT-41, ENT-42 y ENT-43 · Pablo · PR #18**
   Qué: inicio de sesión, crear cuenta y recuperar contraseña con Supabase Auth (usa
@@ -358,6 +403,30 @@ Cada quien agrega su entrada **arriba** de su sección (la más nueva primero).
   Para el siguiente: usa `CatalogoRepositorio.nombreVisible` y `joinAlias` para mostrar nombres.
 
 ### Paola · entrenamiento del día y calendario (`lib/features/entrenamiento`, `lib/features/calendario`)
+
+* **2026-11-25 · ENT-60 (ENT-106, ENT-107, ENT-108) · Paola · PR #27**
+  Qué: pestaña Calendario con el mes completo (`04_calendario.png`): verde, naranja, azul y gris; hoy
+  en tinta y los días que vienen sin color. Flechas para cambiar de mes ("Volver a hoy") y hoja al
+  tocar un día con ejercicios, series y comentario. En debug muestra cuánto tardó en cargar el mes.
+  Por qué / decisión: una sola consulta de sesiones por mes con `idx_sesion_calendario`, más la
+  plantilla del ciclo activo y la fecha de registro; los colores se calculan en memoria con la
+  función pura `colorearMes` (pruebas en `test/calendario_test.dart`). Sin sesión: azul si la
+  plantilla dice descanso o el día no está en la rutina, gris si tocaba entrenar. Antes del registro
+  no hay color (con los datos demo cuenta desde la sesión más antigua).
+  Para el siguiente: ENT-70 agrega en la hoja del día el cambio de lo que pasó (override de 30 días)
+  e invalida `mesCalendarioProvider`. Se quitó `ultimosDiasProvider` (nadie más lo usaba).
+
+* **2026-11-24 · ENT-59 (ENT-104, ENT-105) · Paola · PR #26**
+  Qué: botón "Cambiar solo hoy" en la pantalla del ejercicio con las alternativas de
+  `alternativa_ejercicio` por prioridad (sin alternativas no aparece). Al elegir una, el
+  `registro_ejercicio` de hoy guarda el `id_ejercicio` de la alternativa con `es_sustitucion = 1`
+  y el `id_programado` del original. La hoja permite volver al original. Hoy muestra el nombre de la
+  alternativa y la precarga usa el historial de la alternativa.
+  Por qué / decisión: nunca se toca `ejercicio_programado`, así que mañana y la plantilla siguen con
+  el original. No se puede cambiar si ya hay series guardadas hoy (serían de otro ejercicio): hay que
+  quitarles la ✓ primero.
+  Para el siguiente: para saber qué se hizo hoy, usa `registro_ejercicio.id_ejercicio`, no el de
+  `ejercicio_programado`.
 
 * **2026-11-17 · ENT-50 (ENT-90) · Paola · PR #(pendiente)**
   Qué: botón "Terminar ejercicio" en la pantalla del ejercicio (marca `registro_ejercicio.completado`
